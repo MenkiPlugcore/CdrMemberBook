@@ -85,7 +85,7 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(memberBookService, this);
         memberBookService.giveToOnlinePlayers();
         memberBookService.startEnforcement();
-        getLogger().info("CdrMemberBook v1.4.0 enabled.");
+        getLogger().info("CdrMemberBook v1.4.1 enabled.");
     }
 
     @Override
@@ -140,7 +140,18 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
             getConfig().set("member-book.recovery.remove-duplicates", true);
         }
 
-        getConfig().set("config-version", 5);
+        if (configVersion < 6) {
+            getConfig().set("member-book.customization.custom-model-data", 0);
+            getConfig().set("member-book.customization.item-model", "");
+            getConfig().set("member-book.customization.enchant-glint", "default");
+            getConfig().set("member-book.customization.hide-tooltip", false);
+            getConfig().set("member-book.customization.hide-attributes", false);
+            getConfig().set("member-book.customization.hide-additional-tooltip", false);
+            getConfig().set("member-book.customization.item-flags", java.util.List.of());
+            getConfig().set("member-book.customization.refresh-existing", true);
+        }
+
+        getConfig().set("config-version", 6);
         saveConfig();
     }
 

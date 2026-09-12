@@ -28,6 +28,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -84,7 +85,17 @@ public final class MemberBookService implements Listener {
     public void giveToOnlinePlayers() {
         if (!isEnabled()) return;
         for (Player player : Bukkit.getOnlinePlayers()) {
+            if (isEligibleForBook(player) && refreshExistingEnabled()) {
+                refreshVisibleBookAppearance(player);
+            }
             syncBookState(player, false);
+        }
+    }
+
+    public void refreshOnlineBooks() {
+        if (!isEnabled() || !refreshExistingEnabled()) return;
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (isEligibleForBook(player)) refreshVisibleBookAppearance(player);
         }
     }
 
@@ -108,12 +119,14 @@ public final class MemberBookService implements Listener {
     public boolean forceGive(Player player) {
         if (!isEligibleForBook(player)) return false;
         recoverySuppressed.remove(player.getUniqueId());
+        if (refreshExistingEnabled()) refreshVisibleBookAppearance(player);
         return reconcileMovableBook(player, true, true, true) && finishLockedMode(player);
     }
 
     public boolean forceRepair(Player player) {
         if (!isEligibleForBook(player)) return false;
         recoverySuppressed.remove(player.getUniqueId());
+        if (refreshExistingEnabled()) refreshVisibleBookAppearance(player);
         boolean repaired = reconcileMovableBook(player, true, true, true);
         if (!repaired) return false;
         return finishLockedMode(player);
@@ -344,7 +357,14 @@ public final class MemberBookService implements Listener {
         if (material == null) material = Material.BOOK;
 
         ItemStack item = new ItemStack(material);
+        applyConfiguredAppearance(item);
+        return item;
+    }
+
+    private void applyConfiguredAppearance(ItemStack item) {
         ItemMeta meta = item.getItemMeta();
+        if (meta == null) return;
+
         meta.setDisplayName(Colors.legacy(plugin.getConfig().getString(
                 "member-book.name", "&d&lMOONSIGN &fMember Book")));
 
@@ -352,11 +372,76 @@ public final class MemberBookService implements Listener {
         for (String line : plugin.getConfig().getStringList("member-book.lore")) {
             lore.add(Colors.legacy(line));
         }
-        if (!lore.isEmpty()) meta.setLore(lore);
+        meta.setLore(lore.isEmpty() ? null : lore);
+
+        String base = "member-book.customization.";
+
+        int customModelData = plugin.getConfig().getInt(base + "custom-model-data", 0);
+        if (customModelData > 0) meta.setCustomModelData(customModelData);
+
+        String itemModelName = plugin.getConfig().getString(base + "item-model", "");
+        if (itemModelName != null && !itemModelName.isBlank()) {
+            NamespacedKey itemModel = NamespacedKey.fromString(itemModelName.trim());
+            if (itemModel != null) meta.setItemModel(itemModel);
+        }
+
+        String glintMode = plugin.getConfig().getString(base + "enchant-glint", "default");
+        if (glintMode != null) {
+            switch (glintMode.trim().toLowerCase()) {
+                case "true", "on", "yes", "enabled" -> meta.setEnchantmentGlintOverride(true);
+                case "false", "off", "no", "disabled" -> meta.setEnchantmentGlintOverride(false);
+                default -> meta.setEnchantmentGlintOverride(null);
+            }
+        }
+
+        meta.setHideTooltip(plugin.getConfig().getBoolean(base + "hide-tooltip", false));
+        if (plugin.getConfig().getBoolean(base + "hide-attributes", false)) {
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+        }
+        if (plugin.getConfig().getBoolean(base + "hide-additional-tooltip", false)) {
+            meta.addItemFlags(ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+        }
+
+        for (String configuredFlag : plugin.getConfig().getStringList(base + "item-flags")) {
+            if (configuredFlag == null || configuredFlag.isBlank()) continue;
+            try {
+                meta.addItemFlags(ItemFlag.valueOf(configuredFlag.trim().toUpperCase()));
+            } catch (IllegalArgumentException ignored) {
+                // Invalid flags are ignored so a typo cannot prevent the plugin from starting.
+            }
+        }
 
         meta.getPersistentDataContainer().set(bookKey, PersistentDataType.BYTE, (byte) 1);
         item.setItemMeta(meta);
-        return item;
+    }
+
+    private void refreshVisibleBookAppearance(Player player) {
+        PlayerInventory inventory = player.getInventory();
+        for (int slot = 0; slot < inventory.getSize(); slot++) {
+            ItemStack current = inventory.getItem(slot);
+            if (isMemberBook(current)) inventory.setItem(slot, refreshedBook());
+        }
+
+        ItemStack cursor = player.getItemOnCursor();
+        if (isMemberBook(cursor)) player.setItemOnCursor(refreshedBook());
+
+        if (isExternalView(player)) {
+            Inventory top = player.getOpenInventory().getTopInventory();
+            for (int slot = 0; slot < top.getSize(); slot++) {
+                ItemStack current = top.getItem(slot);
+                if (isMemberBook(current)) top.setItem(slot, refreshedBook());
+            }
+        }
+    }
+
+    private ItemStack refreshedBook() {
+        ItemStack refreshed = createBook();
+        refreshed.setAmount(1);
+        return refreshed;
+    }
+
+    private boolean refreshExistingEnabled() {
+        return plugin.getConfig().getBoolean("member-book.customization.refresh-existing", true);
     }
 
     private boolean isEnabled() {
@@ -427,7 +512,9 @@ public final class MemberBookService implements Listener {
         recoverySuppressed.remove(player.getUniqueId());
         long delay = Math.max(1L, plugin.getConfig().getLong("member-book.give-delay-ticks", 10L));
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (player.isOnline()) syncBookState(player, true);
+            if (!player.isOnline()) return;
+            if (isEligibleForBook(player) && refreshExistingEnabled()) refreshVisibleBookAppearance(player);
+            syncBookState(player, true);
         }, delay);
     }
 

@@ -6,6 +6,20 @@
 - Plugin identity, Maven artifact, Java main class, dan Java package diganti menjadi CdrMemberBook.
 - Permission prefix lama `moonsignmenu.*` tetap dipertahankan sementara untuk kompatibilitas server yang sudah berjalan.
 
+## 1.4.1 — Book Customization
+
+- Added configurable `custom-model-data` for legacy/custom resource-pack item models.
+- Added Minecraft 1.21.4+ `item-model` support using namespaced item model keys such as `moonsign:member_book`.
+- Added tri-state `enchant-glint`: `true`, `false`, or `default`.
+- Added optional `hide-tooltip`, `hide-attributes`, and `hide-additional-tooltip` controls.
+- Added arbitrary Bukkit `item-flags` list support for advanced item presentation.
+- Existing `material`, `name`, and `lore` settings remain fully configurable and backward compatible.
+- Added `refresh-existing`; online Bedrock players' existing Member Books can be restyled automatically on join/reload without deleting and re-giving the book.
+- `/cdrmemberbook give` and `/cdrmemberbook fix` now refresh the appearance of an existing book before recovery/repair.
+- Customization never removes the Member Book PDC identity marker, so Safety & Recovery protections continue to work after restyling.
+- Config migration v5 -> v6 automatically adds customization defaults without changing the current visual appearance.
+- Version bumped to `1.4.1`.
+
 ## 1.4.0 — Member Book Safety & Recovery
 
 - Added lightweight periodic recovery for eligible Bedrock/Floodgate players; default interval is 100 ticks (5 seconds).

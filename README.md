@@ -1,4 +1,4 @@
-# CdrMemberBook v1.4.0
+# CdrMemberBook v1.4.1
 
 Standalone Paper plugin by **CADERA** untuk member menu Minecraft Java + Bedrock. Project ini dipisahkan dari monorepo `MenkiPlugcore/plugin` agar release, maintenance, issue, dan update berikutnya dapat dikelola langsung dari repository ini.
 
@@ -27,6 +27,31 @@ Standalone Paper plugin by **CADERA** untuk member menu Minecraft Java + Bedrock
 - Shift-click, drag, hotbar-number swap, offhand swap, hopper/container transfer, hopper pickup, dan dispenser ikut diproteksi.
 - Member Book tetap tidak dapat dibuang jika `prevent-drop: true`.
 - Safety recovery otomatis memulihkan buku yang hilang dan membersihkan duplikat.
+
+## Book Customization
+
+`v1.4.1` menambahkan kontrol tampilan item tanpa mengubah identitas/proteksi Member Book.
+
+```yaml
+member-book:
+  material: BOOK
+  name: '&d&lMOONSIGN &fMember Book'
+  lore:
+    - '&7Klik kanan untuk membuka Menu Member.'
+  customization:
+    custom-model-data: 0
+    item-model: ''
+    enchant-glint: default
+    hide-tooltip: false
+    hide-attributes: false
+    hide-additional-tooltip: false
+    item-flags: []
+    refresh-existing: true
+```
+
+`item-model` memakai format `namespace:key` dan ditujukan untuk sistem item model Minecraft 1.21.4+. `custom-model-data` tetap tersedia untuk kompatibilitas legacy. Untuk client Bedrock melalui Geyser, model/tekstur custom memerlukan Geyser custom item mapping dan Bedrock resource pack; plugin hanya menetapkan komponen item Java yang menjadi basis mapping.
+
+`/menu reload` akan menerapkan konfigurasi tampilan terbaru ke Member Book player online jika `refresh-existing: true`.
 
 ## Member Book Safety & Recovery
 
@@ -127,7 +152,7 @@ mvn clean package
 Output:
 
 ```text
-target/CdrMemberBook-1.4.0.jar
+target/CdrMemberBook-1.4.1.jar
 ```
 
 ## Migration

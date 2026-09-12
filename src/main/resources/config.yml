@@ -1,5 +1,5 @@
-# CdrMemberBook v1.4.0
-config-version: 5
+# CdrMemberBook v1.4.1
+config-version: 6
 prefix: '&8[&dMOONSIGN&8] &r'
 
 teleport:
@@ -28,7 +28,7 @@ bedrock-icons:
   trade-deny: textures/items/barrier
 
 # Member Book automatically opens the member menu on right click.
-# Default v1.4.0: buku bebas dipindahkan di inventory player sendiri,
+# Default v1.4.1: buku bebas dipindahkan di inventory player sendiri,
 # tetapi tidak bisa disimpan ke chest, ender chest, PlayerVaults, shulker,
 # plugin GUI, atau inventory lain di luar inventory player.
 member-book:
@@ -37,7 +37,7 @@ member-book:
   give-on-join: true
   give-delay-ticks: 10
   permanent-hotbar: false
-  # Legacy compatibility option. Mode default v1.4.0 tidak mengunci perpindahan internal.
+  # Legacy compatibility option. Mode default v1.4.1 tidak mengunci perpindahan internal.
   prevent-move: false
   prevent-external-storage: true
   # Dipakai oleh mode legacy permanent-hotbar.
@@ -64,6 +64,24 @@ member-book:
   lore:
   - '&7Klik kanan untuk membuka Menu Member.'
   - '&8Item menu pribadi MOONSIGN.'
+
+  # Book Customization v1.4.1
+  customization:
+    # 0 = nonaktif. Cocok untuk resource pack Java / legacy Geyser custom item mapping.
+    custom-model-data: 0
+    # Format namespace:key, contoh: moonsign:member_book. Kosong = model vanilla.
+    # Untuk Bedrock, model custom tetap membutuhkan Geyser custom mapping + Bedrock resource pack.
+    item-model: ''
+    # true = paksa glint, false = paksa tanpa glint, default = perilaku vanilla.
+    enchant-glint: default
+    # Menyembunyikan seluruh tooltip item. Jika true, nama/lore juga tidak terlihat di tooltip.
+    hide-tooltip: false
+    hide-attributes: false
+    hide-additional-tooltip: false
+    # ItemFlag Bukkit tambahan, contoh: [HIDE_ENCHANTS, HIDE_UNBREAKABLE]
+    item-flags: []
+    # Buku lama milik player online otomatis mengikuti tampilan config terbaru saat reload/join.
+    refresh-existing: true
 
 # Native integrations used by the Bedrock click-only flows.
 integrations:
