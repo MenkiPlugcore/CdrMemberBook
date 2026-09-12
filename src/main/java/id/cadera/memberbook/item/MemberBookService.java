@@ -566,6 +566,59 @@ public final class MemberBookService implements Listener {
         return bookMode().name();
     }
 
+    public void validateConfiguration() {
+        String rawMode = plugin.getConfig().getString("member-book.mode", "MOVABLE");
+        if (!isValidMode(rawMode)) {
+            plugin.getLogger().warning("Invalid member-book.mode '" + rawMode
+                    + "'. Falling back to MOVABLE. Valid: MOVABLE, LOCKED_HOTBAR, FIXED_SLOT_MOVABLE, NORMAL.");
+        }
+
+        int slot = plugin.getConfig().getInt("member-book.hotbar-slot", 8);
+        if (slot < 0 || slot > 8) {
+            plugin.getLogger().warning("member-book.hotbar-slot=" + slot
+                    + " is outside 0-8. Runtime value is clamped to " + reservedSlot() + ".");
+        }
+
+        long fixedDelay = plugin.getConfig().getLong("member-book.fixed-slot.return-delay-ticks", 40L);
+        if (fixedDelay < 1L) {
+            plugin.getLogger().warning("member-book.fixed-slot.return-delay-ticks must be >= 1. Runtime uses 1 tick minimum.");
+        }
+    }
+
+    public BookStatus inspect(Player player) {
+        int inventoryCopies = 0;
+        for (ItemStack item : player.getInventory().getContents()) {
+            if (isMemberBook(item)) inventoryCopies++;
+        }
+        boolean cursorBook = isMemberBook(player.getItemOnCursor());
+        int externalCopies = 0;
+        if (isExternalView(player)) {
+            for (ItemStack item : player.getOpenInventory().getTopInventory().getContents()) {
+                if (isMemberBook(item)) externalCopies++;
+            }
+        }
+        boolean bedrock = plugin.forms() != null && plugin.forms().isBedrock(player);
+        boolean preventDrop = bookMode() != BookMode.NORMAL
+                && plugin.getConfig().getBoolean("member-book.prevent-drop", true);
+        return new BookStatus(
+                bookMode().name(), isValidMode(plugin.getConfig().getString("member-book.mode", "MOVABLE")),
+                isEligibleForBook(player), bedrock, inventoryCopies, cursorBook, externalCopies,
+                reservedSlot(), isMemberBook(player.getInventory().getItem(reservedSlot())),
+                recoverySuppressed.contains(player.getUniqueId()), recoveryEnabled(),
+                preventExternalStorage(), preventDrop,
+                fixedSlotReturnPending.contains(player.getUniqueId()), dynamicEnabled());
+    }
+
+    private boolean isValidMode(String value) {
+        if (value == null || value.isBlank()) return true;
+        try {
+            BookMode.valueOf(value.trim().toUpperCase());
+            return true;
+        } catch (IllegalArgumentException ignored) {
+            return false;
+        }
+    }
+
     private boolean isPermanentHotbar() {
         return bookMode() == BookMode.LOCKED_HOTBAR;
     }
@@ -877,6 +930,27 @@ public final class MemberBookService implements Listener {
             if (isMemberBook(item)) return true;
         }
         return false;
+    }
+
+    public record BookStatus(
+            String mode,
+            boolean configuredModeValid,
+            boolean eligible,
+            boolean bedrock,
+            int inventoryCopies,
+            boolean cursorBook,
+            int externalCopies,
+            int reservedSlot,
+            boolean bookInReservedSlot,
+            boolean recoverySuppressed,
+            boolean recoveryEnabled,
+            boolean externalStorageProtected,
+            boolean dropProtected,
+            boolean fixedReturnPending,
+            boolean dynamicEnabled) {
+        public int visibleCopies() {
+            return inventoryCopies + (cursorBook ? 1 : 0) + externalCopies;
+        }
     }
 
     private enum BookMode {

@@ -97,17 +97,37 @@ public final class MemberBookAdminCommand implements CommandExecutor, TabComplet
                             + target.getName() + "&e."));
                 }
             }
+            case "status" -> {
+                MemberBookService.BookStatus status = service.inspect(target);
+                sender.sendMessage(Colors.legacy("&dCdrMemberBook Status &8- &f" + target.getName()));
+                sender.sendMessage(Colors.legacy("&7Mode: &f" + status.mode()
+                        + (status.configuredModeValid() ? "" : " &c(config invalid -> fallback)")));
+                sender.sendMessage(Colors.legacy("&7Platform: &f" + (status.bedrock() ? "Bedrock" : "Java")
+                        + " &8| &7Eligible: &f" + status.eligible()));
+                sender.sendMessage(Colors.legacy("&7Copies: &f" + status.visibleCopies()
+                        + " &8(inv=" + status.inventoryCopies() + ", cursor=" + status.cursorBook()
+                        + ", external=" + status.externalCopies() + ")"));
+                sender.sendMessage(Colors.legacy("&7Reserved slot: &f" + status.reservedSlot()
+                        + " &8| &7Book in slot: &f" + status.bookInReservedSlot()));
+                sender.sendMessage(Colors.legacy("&7Recovery: &f" + status.recoveryEnabled()
+                        + " &8| &7Suppressed: &f" + status.recoverySuppressed()
+                        + " &8| &7Fixed return pending: &f" + status.fixedReturnPending()));
+                sender.sendMessage(Colors.legacy("&7External protection: &f" + status.externalStorageProtected()
+                        + " &8| &7Drop protection: &f" + status.dropProtected()
+                        + " &8| &7Dynamic: &f" + status.dynamicEnabled()));
+            }
             default -> sendUsage(sender, label);
         }
         return true;
     }
 
     private void sendUsage(CommandSender sender, String label) {
-        sender.sendMessage(Colors.legacy("&dCdrMemberBook &fv1.5.0 &8- &7Admin Recovery"));
+        sender.sendMessage(Colors.legacy("&dCdrMemberBook &fv1.6.1 &8- &7Admin Tools"));
         sender.sendMessage(Colors.legacy("&f/" + label + " give <player> &8- &7pastikan player punya satu buku"));
         sender.sendMessage(Colors.legacy("&f/" + label + " remove <player> &8- &7hapus buku dan tahan recovery sampai relog"));
         sender.sendMessage(Colors.legacy("&f/" + label + " fix <player> &8- &7bersihkan duplicate + recovery"));
         sender.sendMessage(Colors.legacy("&f/" + label + " refresh <player> &8- &7refresh placeholder nama/lore"));
+        sender.sendMessage(Colors.legacy("&f/" + label + " status <player> &8- &7diagnostic Book Modes + recovery"));
     }
 
     @Override
@@ -118,7 +138,7 @@ public final class MemberBookAdminCommand implements CommandExecutor, TabComplet
         if (args.length == 1) {
             String prefix = args[0].toLowerCase(Locale.ROOT);
             List<String> result = new ArrayList<>();
-            for (String sub : List.of("give", "remove", "fix", "refresh")) {
+            for (String sub : List.of("give", "remove", "fix", "refresh", "status")) {
                 if (sub.startsWith(prefix)) result.add(sub);
             }
             return result;

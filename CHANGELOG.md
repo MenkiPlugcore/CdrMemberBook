@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.1 - Book Modes Stability
+
+- Added `/cdrmemberbook status <player>` diagnostics.
+- Added startup/reload validation for invalid mode, hotbar slot and fixed-slot delay.
+- Hardened Book Modes observability without changing default MOVABLE behavior.
+
 ## Repository migration
 
 - Project dipisahkan dari `MenkiPlugcore/plugin/plugins/MoonSignMenu` menjadi repository standalone `MenkiPlugcore/CdrMemberBook`.

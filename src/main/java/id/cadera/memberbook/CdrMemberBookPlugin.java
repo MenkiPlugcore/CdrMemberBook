@@ -89,10 +89,11 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(this, this);
         Bukkit.getPluginManager().registerEvents(javaMenuService, this);
         Bukkit.getPluginManager().registerEvents(memberBookService, this);
+        memberBookService.validateConfiguration();
         memberBookService.giveToOnlinePlayers();
         memberBookService.startEnforcement();
         getLogger().info("Member Book mode: " + memberBookService.modeName());
-        getLogger().info("CdrMemberBook v1.6.0 enabled.");
+        getLogger().info("CdrMemberBook v1.6.1 enabled.");
     }
 
     @Override
@@ -252,6 +253,7 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
     public void reloadMoonSignConfig() {
         reloadConfig();
         if (memberBookService != null) {
+            memberBookService.validateConfiguration();
             memberBookService.restartEnforcement();
             memberBookService.giveToOnlinePlayers();
         }
