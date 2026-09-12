@@ -38,3 +38,5 @@ jobs:
           git add pom.xml README.md CHANGELOG.md src
           git commit -m "chore: complete standalone CdrMemberBook rebrand v1.8.2"
           git push
+
+# rerun: legacy config migration literals are now scrub-safe
