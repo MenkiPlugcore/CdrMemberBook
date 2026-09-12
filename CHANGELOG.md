@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.7.0 - First Join Tutorial
+
+- Added native three-step Bedrock first-join tutorial.
+- Tutorial completion/eligibility persists per UUID in `tutorial-data.yml`.
+- Existing players are not shown the tutorial by default.
+- Closing before completion keeps first-join players eligible for the next login.
+- Added `/cdrmemberbook tutorialreset <player>` and `/cdrmemberbook tutorialshow <player>`.
+
 ## 1.6.1 - Book Modes Stability
 
 - Added `/cdrmemberbook status <player>` diagnostics.

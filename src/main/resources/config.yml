@@ -1,5 +1,5 @@
-# CdrMemberBook v1.6.0
-config-version: 11
+# CdrMemberBook v1.7.0
+config-version: 12
 prefix: '&8[&dMOONSIGN&8] &r'
 
 teleport:
@@ -21,6 +21,7 @@ bedrock-icons:
   player: textures/items/name_tag
   back: textures/items/arrow
   home: textures/items/bed_red
+  tutorial: textures/items/book_written
   home-add: textures/items/bed_red
   delete: textures/items/barrier
   refresh: textures/items/compass_item
@@ -113,6 +114,33 @@ member-book:
     refresh-on-world-change: true
     # Built-in placeholders: %player%, %uuid%, %world%, %ping%, %online%
     # PlaceholderAPI examples: %luckperms_prefix%, %vault_eco_balance_formatted%, dll.
+
+# First Join Tutorial v1.7.0
+# Hanya player baru yang ditandai eligible secara default. Jika form ditutup sebelum selesai,
+# status eligible disimpan sehingga tutorial akan muncul lagi pada login berikutnya.
+tutorial:
+  enabled: true
+  bedrock-only: true
+  # false = player lama saat plugin di-update tidak otomatis diberi tutorial.
+  show-to-existing-unseen: false
+  # 60 ticks = 3 detik setelah join agar Floodgate/client sudah siap menerima form.
+  delay-ticks: 60
+  open-menu-after-complete: true
+
+  welcome:
+    title: '&d&lMOONSIGN'
+    content: '&fSelamat datang, &d%player%&f!\n&7Member Book adalah pusat menu pribadi kamu di server.'
+    button: 'Lanjut'
+
+  features:
+    title: '&dMember Book'
+    content: '&fDari Member Book kamu bisa membuka Home, TPA, Transfer, Barter, Shop, Party dan fitur server lainnya tanpa menghafal banyak command.'
+    button: 'Lanjut'
+
+  ready:
+    title: '&aSiap Bermain'
+    content: '&fKlik kanan Member Book kapan saja untuk membuka Menu Member.\n&7Kalau buku hilang pada mode aman, sistem recovery akan membantu memulihkannya.'
+    button: 'Mulai'
 
 # Native integrations used by the Bedrock click-only flows.
 integrations:
@@ -439,5 +467,6 @@ messages:
   home-list-refreshed: '&aDaftar home diperbarui.'
   home-set-success: '&aHome &f%home% &aberhasil disimpan/diperbarui.'
   home-delete-success: '&aHome &f%home% &aberhasil dihapus.'
+  tutorial-completed: '&aTutorial selesai. Selamat bermain!'
   home-preset-no-permission: '&cKamu tidak punya izin untuk menggunakan preset home &f%home%&c.'
   invalid-pay-amount: '&cNominal tidak valid. Contoh: 10000 atau 10.000.'

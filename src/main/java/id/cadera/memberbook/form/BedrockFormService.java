@@ -42,6 +42,51 @@ public final class BedrockFormService {
         showConfiguredMenu(player, "main");
     }
 
+    public void showFirstJoinTutorial(Player player, Runnable onComplete) {
+        if (!player.isOnline()) return;
+        showTutorialWelcome(player, onComplete == null ? () -> { } : onComplete);
+    }
+
+    private void showTutorialWelcome(Player player, Runnable onComplete) {
+        String base = "tutorial.welcome.";
+        SimpleForm.Builder builder = SimpleForm.builder()
+                .title(plugin.formatMenuText(plugin.getConfig().getString(base + "title", "&d&lMOONSIGN"), player))
+                .content(plugin.formatMenuText(plugin.getConfig().getString(base + "content",
+                        "&fSelamat datang! Member Book adalah pusat menu pribadi kamu."), player));
+        addButton(builder, plugin.getConfig().getString(base + "button", "Lanjut"), "player", "textures/items/book_written");
+        send(player, builder.validResultHandler(response -> sync(() -> {
+            if (player.isOnline()) showTutorialFeatures(player, onComplete);
+        })).build());
+    }
+
+    private void showTutorialFeatures(Player player, Runnable onComplete) {
+        String base = "tutorial.features.";
+        SimpleForm.Builder builder = SimpleForm.builder()
+                .title(plugin.formatMenuText(plugin.getConfig().getString(base + "title", "Fitur Member Book"), player))
+                .content(plugin.formatMenuText(plugin.getConfig().getString(base + "content",
+                        "&fGunakan Member Book untuk Home, TPA, Transfer, Barter, Shop dan fitur server lainnya."), player));
+        addButton(builder, plugin.getConfig().getString(base + "button", "Lanjut"), "player", "textures/items/compass_item");
+        send(player, builder.validResultHandler(response -> sync(() -> {
+            if (player.isOnline()) showTutorialReady(player, onComplete);
+        })).build());
+    }
+
+    private void showTutorialReady(Player player, Runnable onComplete) {
+        String base = "tutorial.ready.";
+        SimpleForm.Builder builder = SimpleForm.builder()
+                .title(plugin.formatMenuText(plugin.getConfig().getString(base + "title", "Siap Bermain"), player))
+                .content(plugin.formatMenuText(plugin.getConfig().getString(base + "content",
+                        "&fKlik kanan Member Book kapan saja untuk membuka Menu Member."), player));
+        addButton(builder, plugin.getConfig().getString(base + "button", "Mulai"), "player", "textures/items/emerald");
+        send(player, builder.validResultHandler(response -> sync(() -> {
+            if (!player.isOnline()) return;
+            onComplete.run();
+            if (plugin.getConfig().getBoolean("tutorial.open-menu-after-complete", true)) {
+                showMainMenu(player);
+            }
+        })).build());
+    }
+
     public void showConfiguredMenu(Player player, String menuId) {
         MenuDefinition menu = plugin.menus().getMenu(menuId);
         if (menu == null) {

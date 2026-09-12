@@ -116,18 +116,33 @@ public final class MemberBookAdminCommand implements CommandExecutor, TabComplet
                         + " &8| &7Drop protection: &f" + status.dropProtected()
                         + " &8| &7Dynamic: &f" + status.dynamicEnabled()));
             }
+            case "tutorialreset" -> {
+                plugin.tutorial().reset(target);
+                sender.sendMessage(Colors.legacy("&aFirst Join Tutorial di-reset untuk &f" + target.getName()
+                        + "&a. Tutorial akan tersedia lagi pada join berikutnya."));
+            }
+            case "tutorialshow" -> {
+                if (!plugin.tutorial().canShow(target)) {
+                    sender.sendMessage(Colors.legacy("&eTutorial native hanya bisa ditampilkan ke player Bedrock/Floodgate yang online saat fitur aktif."));
+                    return true;
+                }
+                plugin.tutorial().showNow(target);
+                sender.sendMessage(Colors.legacy("&aFirst Join Tutorial ditampilkan ke &f" + target.getName() + "&a."));
+            }
             default -> sendUsage(sender, label);
         }
         return true;
     }
 
     private void sendUsage(CommandSender sender, String label) {
-        sender.sendMessage(Colors.legacy("&dCdrMemberBook &fv1.6.1 &8- &7Admin Tools"));
+        sender.sendMessage(Colors.legacy("&dCdrMemberBook &fv1.7.0 &8- &7Admin Tools"));
         sender.sendMessage(Colors.legacy("&f/" + label + " give <player> &8- &7pastikan player punya satu buku"));
         sender.sendMessage(Colors.legacy("&f/" + label + " remove <player> &8- &7hapus buku dan tahan recovery sampai relog"));
         sender.sendMessage(Colors.legacy("&f/" + label + " fix <player> &8- &7bersihkan duplicate + recovery"));
         sender.sendMessage(Colors.legacy("&f/" + label + " refresh <player> &8- &7refresh placeholder nama/lore"));
         sender.sendMessage(Colors.legacy("&f/" + label + " status <player> &8- &7diagnostic Book Modes + recovery"));
+        sender.sendMessage(Colors.legacy("&f/" + label + " tutorialreset <player> &8- &7reset tutorial player"));
+        sender.sendMessage(Colors.legacy("&f/" + label + " tutorialshow <player> &8- &7paksa tampilkan tutorial Bedrock"));
     }
 
     @Override
@@ -138,7 +153,7 @@ public final class MemberBookAdminCommand implements CommandExecutor, TabComplet
         if (args.length == 1) {
             String prefix = args[0].toLowerCase(Locale.ROOT);
             List<String> result = new ArrayList<>();
-            for (String sub : List.of("give", "remove", "fix", "refresh", "status")) {
+            for (String sub : List.of("give", "remove", "fix", "refresh", "status", "tutorialreset", "tutorialshow")) {
                 if (sub.startsWith(prefix)) result.add(sub);
             }
             return result;

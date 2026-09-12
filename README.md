@@ -1,4 +1,4 @@
-# CdrMemberBook v1.6.1
+# CdrMemberBook v1.7.0
 
 Standalone Paper plugin by **CADERA** untuk member menu Minecraft Java + Bedrock. Project ini dipisahkan dari monorepo `MenkiPlugcore/plugin` agar release, maintenance, issue, dan update berikutnya dapat dikelola langsung dari repository ini.
 
@@ -28,7 +28,7 @@ Standalone Paper plugin by **CADERA** untuk member menu Minecraft Java + Bedrock
 - Member Book tetap tidak dapat dibuang jika `prevent-drop: true`.
 - Safety recovery otomatis memulihkan buku yang hilang dan membersihkan duplikat.
 
-## Book Modes v1.6.1
+## Book Modes v1.7.0
 
 Behavior Member Book sekarang dapat dipilih melalui `member-book.mode` tanpa compile ulang:
 
@@ -243,6 +243,11 @@ Source awal project ini berasal dari `plugins/MoonSignMenu` pada repository `Men
 Saat upgrade dari config v4 ke v5, plugin otomatis menambahkan dan mengaktifkan default recovery `v1.4.0` tanpa perlu menghapus `config.yml` lama.
 
 
-## Book Modes Stability v1.6.1
+## Book Modes Stability v1.7.0
 
 Use `/cdrmemberbook status <player>` to inspect active mode, visible copies, reserved slot, recovery suppression, external/drop protection and dynamic refresh state. Invalid Book Mode config values safely fall back to `MOVABLE` and produce a startup/reload warning.
+
+
+## First Join Tutorial v1.7.0
+
+New Bedrock players receive a native three-step tutorial after join. Completion is persisted in `plugins/CdrMemberBook/tutorial-data.yml`. Existing players are skipped by default (`tutorial.show-to-existing-unseen: false`). Admins can test/reset with `/cdrmemberbook tutorialshow <player>` and `/cdrmemberbook tutorialreset <player>`.

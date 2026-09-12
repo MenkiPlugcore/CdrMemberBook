@@ -20,6 +20,7 @@ import id.cadera.memberbook.menu.MenuConfigService;
 import id.cadera.memberbook.menu.MenuConfigService.MenuButton;
 import id.cadera.memberbook.tp.TeleportRequestManager;
 import id.cadera.memberbook.tp.ToggleStore;
+import id.cadera.memberbook.tutorial.FirstJoinTutorialService;
 import id.cadera.memberbook.util.Colors;
 
 import java.util.HashMap;
@@ -33,6 +34,7 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
     private MemberBookService memberBookService;
     private MenuConfigService menuConfigService;
     private EssentialsHomeService essentialsHomeService;
+    private FirstJoinTutorialService tutorialService;
     private NamespacedKey playerKey;
     private NamespacedKey buttonKey;
 
@@ -85,15 +87,17 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
             getLogger().info("PlaceholderAPI not detected: Dynamic Member Book will use built-in placeholders only.");
         }
 
+        tutorialService = new FirstJoinTutorialService(this);
         registerCommands();
         Bukkit.getPluginManager().registerEvents(this, this);
         Bukkit.getPluginManager().registerEvents(javaMenuService, this);
         Bukkit.getPluginManager().registerEvents(memberBookService, this);
+        Bukkit.getPluginManager().registerEvents(tutorialService, this);
         memberBookService.validateConfiguration();
         memberBookService.giveToOnlinePlayers();
         memberBookService.startEnforcement();
         getLogger().info("Member Book mode: " + memberBookService.modeName());
-        getLogger().info("CdrMemberBook v1.6.1 enabled.");
+        getLogger().info("CdrMemberBook v1.7.0 enabled.");
     }
 
     @Override
@@ -198,7 +202,15 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
             getConfig().set("member-book.fixed-slot.return-delay-ticks", 40L);
         }
 
-        getConfig().set("config-version", 11);
+        if (configVersion < 12) {
+            getConfig().set("tutorial.enabled", true);
+            getConfig().set("tutorial.bedrock-only", true);
+            getConfig().set("tutorial.show-to-existing-unseen", false);
+            getConfig().set("tutorial.delay-ticks", 60L);
+            getConfig().set("tutorial.open-menu-after-complete", true);
+        }
+
+        getConfig().set("config-version", 12);
         saveConfig();
     }
 
@@ -281,6 +293,10 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
 
     public EssentialsHomeService homes() {
         return essentialsHomeService;
+    }
+
+    public FirstJoinTutorialService tutorial() {
+        return tutorialService;
     }
 
     public NamespacedKey playerKey() {
