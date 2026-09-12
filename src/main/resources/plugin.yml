@@ -1,5 +1,5 @@
 name: CdrMemberBook
-version: '1.3.2'
+version: '1.4.0'
 main: id.cadera.memberbook.CdrMemberBookPlugin
 api-version: '1.21'
 author: CADERA
@@ -14,6 +14,10 @@ commands:
     description: Open MOONSIGN member menu or reload its config.
     usage: /menu [reload]
     permission: moonsignmenu.menu
+  cdrmemberbook:
+    description: Admin tools for Member Book give, remove, repair and recovery.
+    usage: /cdrmemberbook <give|remove|fix> <player>
+    permission: moonsignmenu.admin.memberbook
   tpa:
     description: Request teleport to another player.
     usage: /tpa <player>
@@ -51,6 +55,8 @@ permissions:
   moonsignmenu.tptoggle:
     default: true
   moonsignmenu.admin.reload:
+    default: op
+  moonsignmenu.admin.memberbook:
     default: op
   moonsignmenu.bypass.cooldown:
     default: op
