@@ -5,6 +5,7 @@ on:
     branches: [ main ]
     paths:
       - '.github/scripts/upgrade_v195.py'
+      - '.github/scripts/fix_upgrade_v195.py'
       - '.github/workflows/upgrade-v1.9.5.yml'
 
 permissions:
@@ -24,6 +25,8 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
+      - name: Patch upgrade markers
+        run: python3 .github/scripts/fix_upgrade_v195.py
       - name: Apply v1.9.5
         run: python3 .github/scripts/upgrade_v195.py
       - name: Build with Maven
