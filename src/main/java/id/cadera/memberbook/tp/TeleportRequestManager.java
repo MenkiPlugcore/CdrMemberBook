@@ -66,10 +66,10 @@ public final class TeleportRequestManager {
         lastSent.put(requester.getUniqueId(), System.currentTimeMillis());
 
         if (mode == TeleportMode.TO_TARGET) {
-            plugin.message(requester, "request-sent-to", "%player%", target.getName());
+            statusMessage(requester, "request-sent-to", "%player%", target.getName());
             plugin.message(target, "request-received-to", "%player%", requester.getName());
         } else {
-            plugin.message(requester, "request-sent-here", "%player%", target.getName());
+            statusMessage(requester, "request-sent-here", "%player%", target.getName());
             plugin.message(target, "request-received-here", "%player%", requester.getName());
         }
 
@@ -100,8 +100,8 @@ public final class TeleportRequestManager {
             return false;
         }
 
-        plugin.message(target, "request-accepted");
-        plugin.message(requester, "request-accepted");
+        statusMessage(target, "request-accepted");
+        statusMessage(requester, "request-accepted");
 
         boolean success;
         Player moved;
@@ -134,11 +134,11 @@ public final class TeleportRequestManager {
             return false;
         }
 
-        plugin.message(target, "request-denied");
+        statusMessage(target, "request-denied");
         Sounds.play(plugin, target, "teleport.sounds.denied");
         Player requester = Bukkit.getPlayer(request.requesterId());
         if (requester != null) {
-            plugin.message(requester, "target-denied", "%player%", target.getName());
+            statusMessage(requester, "target-denied", "%player%", target.getName());
             Sounds.play(plugin, requester, "teleport.sounds.denied");
         }
         return true;
@@ -167,6 +167,11 @@ public final class TeleportRequestManager {
         }
     }
 
+    private void statusMessage(Player player, String key, String... replacements) {
+        if (plugin.preferences() != null && !plugin.preferences().tpStatusNotificationsEnabled(player)) return;
+        plugin.message(player, key, replacements);
+    }
+
     private void sendAcceptControls(Player target, Player requester, TeleportMode mode) {
         if (plugin.forms() != null && plugin.forms().isBedrock(target)) {
             plugin.forms().showIncomingRequest(target, requester, mode);
@@ -187,10 +192,10 @@ public final class TeleportRequestManager {
             Player requester = Bukkit.getPlayer(request.requesterId());
             Player target = Bukkit.getPlayer(request.targetId());
             if (requester != null) {
-                plugin.message(requester, "request-expired-sender", "%player%", target == null ? "player" : target.getName());
+                statusMessage(requester, "request-expired-sender", "%player%", target == null ? "player" : target.getName());
             }
             if (target != null) {
-                plugin.message(target, "request-expired-target", "%player%", requester == null ? "player" : requester.getName());
+                statusMessage(target, "request-expired-target", "%player%", requester == null ? "player" : requester.getName());
             }
         }, seconds * 20L);
         expiryTasks.put(request.targetId(), task);

@@ -369,7 +369,11 @@ public final class ReportService {
         String message = "&8[&cREPORT #" + id + "&8] &7[&e" + category + "&7] &f" + reporter.getName()
                 + " &7melaporkan &f" + target.getName() + "&7: &f" + reason
                 + (evidence.isBlank() ? "" : " &8| &7Evidence: &f" + evidence);
-        for (Player online : Bukkit.getOnlinePlayers()) if (permission == null || permission.isBlank() || online.hasPermission(permission)) online.sendMessage(Colors.legacy(message));
+        for (Player online : Bukkit.getOnlinePlayers()) {
+            if (permission != null && !permission.isBlank() && !online.hasPermission(permission)) continue;
+            if (plugin.preferences() != null && !plugin.preferences().reportStaffNotificationsEnabled(online)) continue;
+            online.sendMessage(Colors.legacy(message));
+        }
     }
 
     private void runConsoleHook(int id, Player reporter, Player target, String category, String reason, String evidence) {

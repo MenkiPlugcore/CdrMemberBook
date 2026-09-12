@@ -13,6 +13,7 @@ import id.cadera.memberbook.integration.EssentialsHomeService;
 import id.cadera.memberbook.menu.MenuConfigService.MenuButton;
 import id.cadera.memberbook.menu.MenuConfigService.MenuDefinition;
 import id.cadera.memberbook.report.ReportService;
+import id.cadera.memberbook.preference.PreferenceService;
 import id.cadera.memberbook.tp.TeleportMode;
 
 import java.math.BigDecimal;
@@ -99,7 +100,8 @@ public final class BedrockFormService {
         List<MenuButton> buttons = plugin.menus().visibleButtons(menu, player);
         SimpleForm.Builder builder = SimpleForm.builder()
                 .title(plugin.formatMenuText(menu.title(), player))
-                .content(plugin.formatMenuText(menu.content(), player));
+                .content(plugin.preferences() != null && plugin.preferences().compact(player)
+                        ? "" : plugin.formatMenuText(menu.content(), player));
 
         for (MenuButton button : buttons) {
             addConfiguredButton(builder, plugin.formatMenuText(button.name(), player), button.icon());
@@ -146,6 +148,7 @@ public final class BedrockFormService {
             case "trade" -> showTradeMenu(player, menu.id());
             case "report" -> showReportCategorySelect(player, menu.id());
             case "report-center" -> showReportCenter(player, menu.id());
+            case "settings" -> showSettingsForm(player, menu.id());
             case "submenu" -> {
                 if (button.submenu() == null || button.submenu().isBlank()) {
                     plugin.message(player, "menu-not-found", "%menu%", button.key());
@@ -157,6 +160,69 @@ public final class BedrockFormService {
             default -> plugin.message(player, "invalid-button-type", "%type%", button.type());
         }
     }
+
+    // ---- Player Preferences ----
+
+    private void showSettingsForm(Player player, String returnMenuId) {
+        if (plugin.preferences() == null || !plugin.preferences().enabled()) {
+            plugin.message(player, "feature-unavailable");
+            showConfiguredMenu(player, returnMenuId);
+            return;
+        }
+        PreferenceService p = plugin.preferences();
+        SimpleForm.Builder builder = SimpleForm.builder()
+                .title("Player Settings")
+                .content("Preference tersimpan per-player.\nDefault menu: " + p.defaultMenu(player) + "\nMode: " + p.menuMode(player));
+        addButton(builder, "Suara Plugin: " + onOff(p.soundsEnabled(player)), "settings", "textures/items/note_block");
+        addButton(builder, "Tutorial Otomatis: " + onOff(p.tutorialEnabled(player)), "settings", "textures/items/book_written");
+        addButton(builder, "TP Status Notification: " + onOff(p.tpStatusNotificationsEnabled(player)), "settings", "textures/items/ender_pearl");
+        addButton(builder, "Staff Report Notification: " + onOff(p.reportStaffNotificationsEnabled(player)), "settings", "textures/items/bell");
+        addButton(builder, "Menu Mode: " + p.menuMode(player), "settings", "textures/items/comparator");
+        addButton(builder, "Default Menu: " + p.defaultMenu(player), "settings", "textures/items/compass_item");
+        addButton(builder, "Reset ke Default", "delete", "textures/items/redstone_dust");
+        addButton(builder, "Kembali", "back", "textures/items/arrow");
+        send(player, builder.validResultHandler(response -> sync(() -> {
+            if (!player.isOnline() || plugin.preferences() == null) return;
+            PreferenceService prefs=plugin.preferences();
+            int selected=response.clickedButtonId();
+            boolean ok=true; String setting=null; String value=null;
+            switch(selected) {
+                case 0 -> { boolean next=!prefs.soundsEnabled(player); ok=prefs.setSounds(player,next); setting="sounds"; value=onOff(next); }
+                case 1 -> { boolean next=!prefs.tutorialEnabled(player); ok=prefs.setTutorial(player,next); setting="tutorial"; value=onOff(next); }
+                case 2 -> { boolean next=!prefs.tpStatusNotificationsEnabled(player); ok=prefs.setTpStatusNotifications(player,next); setting="tp-status-notifications"; value=onOff(next); }
+                case 3 -> { boolean next=!prefs.reportStaffNotificationsEnabled(player); ok=prefs.setReportStaffNotifications(player,next); setting="report-staff-notifications"; value=onOff(next); }
+                case 4 -> { PreferenceService.MenuMode next=prefs.menuMode(player)==PreferenceService.MenuMode.FULL ? PreferenceService.MenuMode.COMPACT : PreferenceService.MenuMode.FULL; ok=prefs.setMenuMode(player,next); setting="menu-mode"; value=next.name(); }
+                case 5 -> { showDefaultMenuForm(player, returnMenuId); return; }
+                case 6 -> { ok=prefs.reset(player); if(ok) plugin.message(player,"preference-reset"); }
+                case 7 -> { showConfiguredMenu(player, returnMenuId); return; }
+                default -> { return; }
+            }
+            if (!ok) plugin.message(player,"preference-save-failed");
+            else if (setting != null) plugin.message(player,"preference-updated","%setting%",setting,"%value%",value);
+            showSettingsForm(player,returnMenuId);
+        })).build());
+    }
+
+    private void showDefaultMenuForm(Player player, String returnMenuId) {
+        if (plugin.preferences()==null) return;
+        List<String> menus=plugin.preferences().availableMenus();
+        SimpleForm.Builder builder=SimpleForm.builder().title("Default Menu")
+                .content("Pilih menu yang pertama terbuka saat /menu atau Member Book dipakai.");
+        for(String id:menus) addButton(builder,(id.equalsIgnoreCase(plugin.preferences().defaultMenu(player))?"✓ ":"")+id,"settings","textures/items/paper");
+        addButton(builder,"Kembali","back","textures/items/arrow");
+        int back=menus.size();
+        send(player,builder.validResultHandler(response -> sync(() -> {
+            int selected=response.clickedButtonId();
+            if(selected==back){showSettingsForm(player,returnMenuId);return;}
+            if(selected<0 || selected>=menus.size()) return;
+            String menu=menus.get(selected);
+            if(!plugin.preferences().setDefaultMenu(player,menu)) plugin.message(player,"preference-save-failed");
+            else plugin.message(player,"preference-updated","%setting%","default-menu","%value%",menu);
+            showSettingsForm(player,returnMenuId);
+        })).build());
+    }
+
+    private String onOff(boolean value) { return value ? "ON" : "OFF"; }
 
     private void showHomesMenu(Player player, String returnMenuId, String fallbackCommand) {
         EssentialsHomeService homes = plugin.homes();

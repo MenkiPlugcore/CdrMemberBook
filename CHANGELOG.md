@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.10.0 - Player Preferences
+
+- Added lightweight persistent `preferences.yml` storage per player UUID.
+- Added native Java and Bedrock Settings UI with sounds, tutorial, TPA status notification, staff report notification, menu mode and default-menu controls.
+- Added FULL / COMPACT menu presentation preference.
+- `/menu` and Member Book now honor each player's selected default menu.
+- Wired sound preferences into built-in teleport sounds and advanced menu sound actions.
+- Wired tutorial preference into automatic first-join tutorial delivery.
+- Wired report notification preference into staff report chat alerts.
+- Added safe TPA status-notification preference while keeping incoming request and accept/deny controls visible.
+- Added reset-to-server-defaults and config migration v26.
+
 ## 1.9.8 - Report Center Java QoL
 
 - Added native Java Report Center search selector for reporter, target, or ANY lookup.

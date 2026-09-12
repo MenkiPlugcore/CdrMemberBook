@@ -4,6 +4,7 @@ import id.cadera.memberbook.CdrMemberBookPlugin;
 import id.cadera.memberbook.menu.MenuConfigService.MenuButton;
 import id.cadera.memberbook.menu.MenuConfigService.MenuDefinition;
 import id.cadera.memberbook.report.ReportService;
+import id.cadera.memberbook.preference.PreferenceService;
 import id.cadera.memberbook.tp.TeleportMode;
 import id.cadera.memberbook.util.Colors;
 import org.bukkit.Bukkit;
@@ -38,6 +39,14 @@ public final class JavaMenuService implements Listener {
     private static final String NAV_CLOSE = "__close";
     private static final String NAV_PREVIOUS = "__previous";
     private static final String NAV_NEXT = "__next";
+    private static final String PREF_SOUNDS = "__pref_sounds";
+    private static final String PREF_TUTORIAL = "__pref_tutorial";
+    private static final String PREF_TP_NOTIFY = "__pref_tp_notify";
+    private static final String PREF_REPORT_NOTIFY = "__pref_report_notify";
+    private static final String PREF_MENU_MODE = "__pref_menu_mode";
+    private static final String PREF_DEFAULT_MENU = "__pref_default_menu";
+    private static final String PREF_DEFAULT_PREFIX = "__pref_default:";
+    private static final String PREF_RESET = "__pref_reset";
     private static final String REPORT_PREFIX = "__report:";
     private static final String REPORT_OPEN = "__report_open";
     private static final String REPORT_RESOLVED = "__report_resolved";
@@ -181,6 +190,8 @@ public final class JavaMenuService implements Listener {
             case CONFIG -> handleConfiguredClick(player, holder, clicked);
             case PLAYER_SELECT -> handlePlayerSelectClick(player, holder, clicked);
             case TP_MODE -> handleTpMode(player, holder, event.getSlot());
+            case SETTINGS -> handleSettingsClick(player, holder, clicked);
+            case SETTINGS_DEFAULT_MENU -> handleDefaultMenuClick(player, holder, clicked);
             case REPORT_CENTER -> handleReportCenterClick(player, holder, clicked);
             case REPORT_LIST -> handleReportListClick(player, holder, clicked);
             case REPORT_DETAIL -> handleReportDetailClick(player, holder, clicked);
@@ -237,6 +248,7 @@ public final class JavaMenuService implements Listener {
             }
             case "teleport" -> showPlayerSelect(player, menu.id(), 0);
             case "report-center" -> showReportCenter(player, menu.id());
+            case "settings" -> showSettings(player, menu.id());
             case "submenu" -> {
                 if (button.submenu() == null || button.submenu().isBlank()) {
                     plugin.message(player, "menu-not-found", "%menu%", button.key());
@@ -557,6 +569,96 @@ public final class JavaMenuService implements Listener {
         if (current.length() > 0) lines.add(current.toString());
         return lines.isEmpty() ? List.of(value) : List.copyOf(lines);
     }
+
+    // ---- Player Preferences ----
+
+    private void showSettings(Player player, String returnMenuId) {
+        if (plugin.preferences() == null || !plugin.preferences().enabled()) {
+            plugin.message(player, "feature-unavailable");
+            showConfiguredMenu(player, returnMenuId, 0);
+            return;
+        }
+        PreferenceService prefs = plugin.preferences();
+        MenuHolder holder = new MenuHolder(MenuHolder.Type.SETTINGS, null, returnMenuId, 0, 36,
+                "§8CdrMemberBook §7• §dSettings");
+        Inventory inventory = holder.getInventory();
+        fillAll(inventory, filler(Material.BLACK_STAINED_GLASS_PANE));
+        inventory.setItem(4, playerInfoItem(player, 0, 1, "Player Settings"));
+        inventory.setItem(10, navigationItem(prefs.soundsEnabled(player) ? Material.NOTE_BLOCK : Material.BARRIER,
+                prefName("Suara Plugin", prefs.soundsEnabled(player)), PREF_SOUNDS, "&7Toggle suara CdrMemberBook termasuk action sound."));
+        inventory.setItem(11, navigationItem(prefs.tutorialEnabled(player) ? Material.BOOK : Material.PAPER,
+                prefName("Tutorial Otomatis", prefs.tutorialEnabled(player)), PREF_TUTORIAL, "&7Atur tutorial otomatis saat join. Manual tutorial tetap bisa dipanggil admin."));
+        inventory.setItem(12, navigationItem(prefs.tpStatusNotificationsEnabled(player) ? Material.ENDER_PEARL : Material.GRAY_DYE,
+                prefName("TP Status Notification", prefs.tpStatusNotificationsEnabled(player)), PREF_TP_NOTIFY,
+                "&7Toggle feedback status TPA.\n&8Request masuk + accept/deny tetap selalu tampil."));
+        inventory.setItem(14, navigationItem(prefs.reportStaffNotificationsEnabled(player) ? Material.BELL : Material.GRAY_DYE,
+                prefName("Staff Report Notification", prefs.reportStaffNotificationsEnabled(player)), PREF_REPORT_NOTIFY,
+                "&7Dipakai saat kamu memiliki permission staff report."));
+        inventory.setItem(15, navigationItem(Material.COMPARATOR, "&dMenu Mode: &f" + prefs.menuMode(player), PREF_MENU_MODE,
+                "&7FULL = lore + petunjuk lengkap.\n&7COMPACT = tampilan menu lebih ringkas."));
+        inventory.setItem(16, navigationItem(Material.COMPASS, "&bDefault Menu: &f" + prefs.defaultMenu(player), PREF_DEFAULT_MENU,
+                "&7Menu pertama yang terbuka saat /menu atau Member Book dipakai."));
+        inventory.setItem(30, navigationItem(Material.REDSTONE_TORCH, "&eReset ke Default", PREF_RESET,
+                "&7Hapus preference pribadi dan kembali ke default server."));
+        inventory.setItem(31, navigationItem(Material.OAK_DOOR, "&eKembali", NAV_BACK, "&7Kembali ke menu sebelumnya."));
+        player.openInventory(inventory);
+    }
+
+    private void handleSettingsClick(Player player, MenuHolder holder, ItemStack clicked) {
+        String action = action(clicked);
+        if (action == null || plugin.preferences() == null) return;
+        PreferenceService prefs = plugin.preferences();
+        if (NAV_BACK.equals(action)) { showConfiguredMenu(player, holder.menuId(), 0); return; }
+        if (PREF_DEFAULT_MENU.equals(action)) { showDefaultMenuPicker(player, holder.menuId()); return; }
+        boolean ok;
+        String setting;
+        String value;
+        switch (action) {
+            case PREF_SOUNDS -> { boolean next=!prefs.soundsEnabled(player); ok=prefs.setSounds(player,next); setting="sounds"; value=onOff(next); }
+            case PREF_TUTORIAL -> { boolean next=!prefs.tutorialEnabled(player); ok=prefs.setTutorial(player,next); setting="tutorial"; value=onOff(next); }
+            case PREF_TP_NOTIFY -> { boolean next=!prefs.tpStatusNotificationsEnabled(player); ok=prefs.setTpStatusNotifications(player,next); setting="tp-status-notifications"; value=onOff(next); }
+            case PREF_REPORT_NOTIFY -> { boolean next=!prefs.reportStaffNotificationsEnabled(player); ok=prefs.setReportStaffNotifications(player,next); setting="report-staff-notifications"; value=onOff(next); }
+            case PREF_MENU_MODE -> { PreferenceService.MenuMode next=prefs.menuMode(player)==PreferenceService.MenuMode.FULL ? PreferenceService.MenuMode.COMPACT : PreferenceService.MenuMode.FULL; ok=prefs.setMenuMode(player,next); setting="menu-mode"; value=next.name(); }
+            case PREF_RESET -> { ok=prefs.reset(player); setting="reset"; value="DEFAULT"; if(ok) plugin.message(player,"preference-reset"); }
+            default -> { return; }
+        }
+        if (!ok) plugin.message(player, "preference-save-failed");
+        else if (!PREF_RESET.equals(action)) plugin.message(player,"preference-updated","%setting%",setting,"%value%",value);
+        showSettings(player, holder.menuId());
+    }
+
+    private void showDefaultMenuPicker(Player player, String returnMenuId) {
+        if (plugin.preferences() == null) return;
+        List<String> menus = plugin.preferences().availableMenus();
+        MenuHolder holder = new MenuHolder(MenuHolder.Type.SETTINGS_DEFAULT_MENU, null, returnMenuId, 0, 54,
+                "§8Settings §7• §bDefault Menu");
+        Inventory inventory = holder.getInventory();
+        decorateFrame(inventory, player, 0, 1, "Default Menu");
+        int i=0;
+        for (String id : menus) {
+            if (i >= CONTENT_SLOTS.length) break;
+            boolean current = id.equalsIgnoreCase(plugin.preferences().defaultMenu(player));
+            inventory.setItem(CONTENT_SLOTS[i++], navigationItem(current ? Material.LIME_DYE : Material.PAPER,
+                    (current ? "&a" : "&f") + id, PREF_DEFAULT_PREFIX + id,
+                    current ? "&7Default menu saat ini." : "&7Klik untuk jadikan default menu."));
+        }
+        inventory.setItem(49, navigationItem(Material.OAK_DOOR,"&eKembali",NAV_BACK,"&7Kembali ke Settings."));
+        player.openInventory(inventory);
+    }
+
+    private void handleDefaultMenuClick(Player player, MenuHolder holder, ItemStack clicked) {
+        String action=action(clicked);
+        if (action==null || plugin.preferences()==null) return;
+        if (NAV_BACK.equals(action)) { showSettings(player, holder.menuId()); return; }
+        if (!action.startsWith(PREF_DEFAULT_PREFIX)) return;
+        String menu=action.substring(PREF_DEFAULT_PREFIX.length());
+        if (!plugin.preferences().setDefaultMenu(player, menu)) plugin.message(player,"preference-save-failed");
+        else plugin.message(player,"preference-updated","%setting%","default-menu","%value%",menu);
+        showSettings(player, holder.menuId());
+    }
+
+    private String prefName(String label, boolean value) { return (value ? "&a" : "&c") + label + ": &f" + onOff(value); }
+    private String onOff(boolean value) { return value ? "ON" : "OFF"; }
 
     // ---- Java Staff Report Center ----
 
@@ -1090,8 +1192,9 @@ public final class JavaMenuService implements Listener {
         ItemMeta meta = item.getItemMeta();
         meta.setDisplayName(plugin.formatMenuText(button.name(), player));
         List<String> lore = new ArrayList<>();
-        if (button.lore() != null) for (String line : button.lore()) lore.add(plugin.formatMenuText(line, player));
-        if (plugin.getConfig().getBoolean("java-menu.decorations.click-hint", true)) {
+        boolean compact = plugin.preferences() != null && plugin.preferences().compact(player);
+        if (!compact && button.lore() != null) for (String line : button.lore()) lore.add(plugin.formatMenuText(line, player));
+        if (!compact && plugin.getConfig().getBoolean("java-menu.decorations.click-hint", true)) {
             if (!lore.isEmpty()) lore.add("");
             lore.add(Colors.legacy("&8» &fKlik untuk membuka."));
         }

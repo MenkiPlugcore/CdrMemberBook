@@ -8,6 +8,7 @@ public final class Sounds {
     private Sounds() {}
 
     public static void play(CdrMemberBookPlugin plugin, Player player, String configPath) {
+        if (plugin.preferences() != null && !plugin.preferences().soundsEnabled(player)) return;
         String raw = plugin.getConfig().getString(configPath, "");
         if (raw == null || raw.isBlank()) return;
         try {

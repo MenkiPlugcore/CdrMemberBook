@@ -1,5 +1,5 @@
-# CdrMemberBook v1.9.8
-config-version: 25
+# CdrMemberBook v1.10.0
+config-version: 26
 prefix: '&8[&dCdrMemberBook&8] &r'
 
 teleport:
@@ -273,6 +273,19 @@ integrations:
       detail-note-limit: 3
       detail-audit-limit: 5
 
+# Per-player preferences. Data tersimpan ringan di plugins/CdrMemberBook/preferences.yml.
+preferences:
+  enabled: true
+  defaults:
+    sounds: true
+    tutorial: true
+    # Hanya feedback/status TPA non-kritis. Alert request masuk + tombol accept/deny tetap selalu tampil.
+    tp-status-notifications: true
+    # Berlaku saat player memiliki permission staff report.
+    report-staff-notifications: true
+    menu-mode: FULL
+    default-menu: main
+
 # Java inventory GUI presentation. /menu on Java opens this native GUI.
 java-menu:
   decorations:
@@ -288,7 +301,8 @@ java-menu:
 #   homes    = native Bedrock EssentialsX Home Manager
 #   pay      = native Bedrock player picker + manual nominal input
 #   trade    = native Bedrock AxTrade send/accept/deny/toggle flow
-#   report-center = native Bedrock staff Report Center
+#   report-center = native Java/Bedrock staff Report Center
+#   settings = native per-player Settings / Preferences
 #   submenu  = open a submenu from menu.submenus
 #   close    = close the menu
 # Advanced actions v1.9.0: optional `actions:` list overrides legacy single action.
@@ -494,6 +508,18 @@ menu:
         java-material: PLAYER_HEAD
         permission: ''
 
+      settings:
+        enabled: true
+        name: '&dSettings'
+        type: settings
+        order: 900
+        icon: textures/items/comparator
+        java-material: COMPARATOR
+        permission: ''
+        lore:
+        - '&7Atur suara, tutorial, notifikasi,'
+        - '&7mode tampilan, dan default menu.'
+
       close:
         enabled: true
         name: Tutup
@@ -590,6 +616,9 @@ messages:
   report-deleted: '&aReport &f#%id% &aberhasil dihapus.'
   report-action-failed: '&cPerubahan report gagal disimpan. Cek console/storage lalu coba lagi.'
   config-reloaded: '&aConfig CdrMemberBook berhasil direload.'
+  preference-updated: '&aPreference &f%setting% &aberhasil diubah menjadi &f%value%&a.'
+  preference-reset: '&aSemua preference kamu dikembalikan ke default server.'
+  preference-save-failed: '&cPreference gagal disimpan. Coba lagi atau cek storage server.'
   member-book-cannot-drop: '&eMember Book tidak dapat dibuang.'
   member-book-external-storage-blocked: '&eMember Book hanya boleh disimpan di inventory kamu sendiri.'
   member-book-inventory-full: '&eInventory penuh. Kosongkan satu slot agar Member Book bisa diberikan/dipulihkan.'

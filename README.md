@@ -1,6 +1,22 @@
-# CdrMemberBook v1.9.8
+# CdrMemberBook v1.10.0
 
 Standalone Paper plugin by **CADERA** for a configurable Minecraft Java + Bedrock member menu.
+
+
+## Player Preferences — v1.10.0
+
+CdrMemberBook now stores lightweight per-player preferences in `plugins/CdrMemberBook/preferences.yml`.
+Java and Bedrock players can open the native `Settings` button from `/menu` and configure:
+
+- plugin/menu sounds ON/OFF
+- automatic first-join tutorial ON/OFF
+- non-critical TPA status notifications ON/OFF (incoming request + accept/deny controls remain visible for safety)
+- staff report notifications ON/OFF
+- menu presentation mode FULL / COMPACT
+- default menu opened by `/menu` or Member Book
+- reset all personal preferences back to server defaults
+
+The default values remain server-configurable under `preferences.defaults.*`. Existing players require no migration; missing keys use server defaults automatically.
 
 ## Target
 

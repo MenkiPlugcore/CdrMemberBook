@@ -20,6 +20,7 @@ import id.cadera.memberbook.menu.MenuConfigService;
 import id.cadera.memberbook.menu.MenuActionService;
 import id.cadera.memberbook.menu.MenuConfigService.MenuButton;
 import id.cadera.memberbook.report.ReportService;
+import id.cadera.memberbook.preference.PreferenceService;
 import id.cadera.memberbook.tp.TeleportRequestManager;
 import id.cadera.memberbook.tp.ToggleStore;
 import id.cadera.memberbook.tutorial.FirstJoinTutorialService;
@@ -39,6 +40,7 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
     private EssentialsHomeService essentialsHomeService;
     private FirstJoinTutorialService tutorialService;
     private ReportService reportService;
+    private PreferenceService preferenceService;
     private NamespacedKey playerKey;
     private NamespacedKey buttonKey;
 
@@ -52,6 +54,7 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
 
         menuConfigService = new MenuConfigService(this);
         menuActionService = new MenuActionService(this);
+        preferenceService = new PreferenceService(this);
         ToggleStore toggleStore = new ToggleStore(this);
         requestManager = new TeleportRequestManager(this, toggleStore);
         javaMenuService = new JavaMenuService(this);
@@ -104,7 +107,7 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
         memberBookService.giveToOnlinePlayers();
         memberBookService.startEnforcement();
         getLogger().info("Member Book mode: " + memberBookService.modeName());
-        getLogger().info("CdrMemberBook v1.9.6 enabled.");
+        getLogger().info("CdrMemberBook v1.10.0 enabled.");
     }
 
     @Override
@@ -321,7 +324,26 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
             getConfig().set("integrations.report.center.java-note-placeholder", "Ketik catatan staff...");
         }
 
-        getConfig().set("config-version", 25);
+        if (configVersion < 26) {
+            getConfig().set("preferences.enabled", true);
+            getConfig().set("preferences.defaults.sounds", true);
+            getConfig().set("preferences.defaults.tutorial", true);
+            getConfig().set("preferences.defaults.tp-status-notifications", true);
+            getConfig().set("preferences.defaults.report-staff-notifications", true);
+            getConfig().set("preferences.defaults.menu-mode", "FULL");
+            getConfig().set("preferences.defaults.default-menu", "main");
+            if (!getConfig().isSet("menu.main.buttons.settings.enabled")) {
+                getConfig().set("menu.main.buttons.settings.enabled", true);
+                getConfig().set("menu.main.buttons.settings.name", "&dSettings");
+                getConfig().set("menu.main.buttons.settings.type", "settings");
+                getConfig().set("menu.main.buttons.settings.order", 900);
+                getConfig().set("menu.main.buttons.settings.icon", "textures/items/comparator");
+                getConfig().set("menu.main.buttons.settings.java-material", "COMPARATOR");
+                getConfig().set("menu.main.buttons.settings.permission", "");
+            }
+        }
+
+        getConfig().set("config-version", 26);
         saveConfig();
     }
 
@@ -397,7 +419,9 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
         memberBookCommand.setTabCompleter(memberBookAdmin);
     }
 
-    public void openMenu(Player player) { openMenu(player, "main"); }
+    public void openMenu(Player player) {
+        openMenu(player, preferenceService == null ? "main" : preferenceService.defaultMenu(player));
+    }
 
     public void openMenu(Player player, String menuId) {
         String id = menuId == null || menuId.isBlank() ? "main" : menuId;
@@ -443,6 +467,10 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
 
     public ReportService reports() {
         return reportService;
+    }
+
+    public PreferenceService preferences() {
+        return preferenceService;
     }
 
     public FirstJoinTutorialService tutorial() {

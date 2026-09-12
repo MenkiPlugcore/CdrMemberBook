@@ -13,6 +13,8 @@ public final class MenuHolder implements InventoryHolder {
         CONFIG,
         PLAYER_SELECT,
         TP_MODE,
+        SETTINGS,
+        SETTINGS_DEFAULT_MENU,
         REPORT_CENTER,
         REPORT_LIST,
         REPORT_DETAIL,

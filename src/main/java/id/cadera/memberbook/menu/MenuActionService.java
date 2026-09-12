@@ -84,8 +84,10 @@ public final class MenuActionService {
                 case "console-command" -> plugin.dispatchActionCommand(player, action.value(), "console");
                 case "message" -> player.sendMessage(plugin.formatMenuText(action.value(), player));
                 case "sound" -> {
-                    Sound sound = Sound.valueOf(action.value().trim().toUpperCase(Locale.ROOT));
-                    player.playSound(player.getLocation(), sound, action.volume(), action.pitch());
+                    if (plugin.preferences() == null || plugin.preferences().soundsEnabled(player)) {
+                        Sound sound = Sound.valueOf(action.value().trim().toUpperCase(Locale.ROOT));
+                        player.playSound(player.getLocation(), sound, action.volume(), action.pitch());
+                    }
                 }
                 case "close" -> player.closeInventory();
                 case "open-menu" -> plugin.openMenu(player, action.value());

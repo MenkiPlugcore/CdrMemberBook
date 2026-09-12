@@ -55,6 +55,7 @@ public final class FirstJoinTutorialService implements Listener {
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         if (!plugin.getConfig().getBoolean("tutorial.enabled", true)) return;
+        if (plugin.preferences() != null && !plugin.preferences().tutorialEnabled(player)) return;
         if (plugin.getConfig().getBoolean("tutorial.bedrock-only", true)
                 && (plugin.forms() == null || !plugin.forms().isBedrock(player))) return;
 

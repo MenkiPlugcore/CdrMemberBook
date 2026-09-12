@@ -14,7 +14,7 @@ import java.util.Set;
 import me.clip.placeholderapi.PlaceholderAPI;
 
 public final class MenuConfigService {
-    private static final Set<String> KNOWN_TYPES = Set.of("command", "teleport", "homes", "pay", "trade", "report", "report-center", "submenu", "close");
+    private static final Set<String> KNOWN_TYPES = Set.of("command", "teleport", "homes", "pay", "trade", "report", "report-center", "settings", "submenu", "close");
     private static final Set<String> ACTION_TYPES = Set.of("command", "console-command", "message", "sound", "close", "open-menu", "delay");
     private static final Set<String> CONDITION_OPERATORS = Set.of("==", "=", "equals", "!=", "not_equals", "contains", "not_contains", "starts_with", "ends_with", ">", ">=", "<", "<=");
     private final CdrMemberBookPlugin plugin;
@@ -97,7 +97,7 @@ public final class MenuConfigService {
         if (!button.actions().isEmpty()) return actionsAvailability(button.actions());
         if (!KNOWN_TYPES.contains(button.type())) return new Availability(false,"invalid-type","type="+button.type());
         return switch(button.type()) {
-            case "teleport","close" -> new Availability(true,"ok","built-in");
+            case "teleport","close","settings" -> new Availability(true,"ok","built-in");
             case "submenu" -> button.submenu()==null || button.submenu().isBlank() || getMenu(button.submenu())==null ? new Availability(false,"missing-submenu",button.submenu()==null?"":button.submenu()) : new Availability(true,"ok","submenu="+button.submenu());
             case "homes" -> plugin.homes()!=null && plugin.homes().available() ? new Availability(true,"ok","EssentialsX") : new Availability(false,"missing-integration","EssentialsX Home");
             case "pay" -> availableCommand(plugin.getConfig().getString("integrations.pay.command","pay %target% %amount%"));
