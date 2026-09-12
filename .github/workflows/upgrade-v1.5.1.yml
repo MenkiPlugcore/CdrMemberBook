@@ -26,7 +26,7 @@ jobs:
           cache: maven
 
       - name: Apply v1.5.1 Home Picker update
-        run: python3 .github/scripts/upgrade_v151.py
+        run: python3 .github/scripts/run_v151_fixed.py
 
       - name: Build with Maven
         run: mvn -B clean package
