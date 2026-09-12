@@ -9,6 +9,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
+import id.cadera.memberbook.command.MemberBookAdminCommand;
 import id.cadera.memberbook.command.MenuCommand;
 import id.cadera.memberbook.command.TeleportCommands;
 import id.cadera.memberbook.form.BedrockFormService;
@@ -84,7 +85,12 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(memberBookService, this);
         memberBookService.giveToOnlinePlayers();
         memberBookService.startEnforcement();
-        getLogger().info("CdrMemberBook v1.3.2 enabled.");
+        getLogger().info("CdrMemberBook v1.4.0 enabled.");
+    }
+
+    @Override
+    public void onDisable() {
+        if (memberBookService != null) memberBookService.stopEnforcement();
     }
 
     private void migrateAndMergeConfig() {
@@ -121,14 +127,20 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
         }
 
         if (configVersion < 4) {
-            // v1.3.2: Member Book is movable inside the player's own inventory.
-            // External storage is protected instead of locking one hotbar slot.
             getConfig().set("member-book.permanent-hotbar", false);
             getConfig().set("member-book.prevent-move", false);
             getConfig().set("member-book.prevent-external-storage", true);
         }
 
-        getConfig().set("config-version", 4);
+        if (configVersion < 5) {
+            getConfig().set("member-book.recovery.enabled", true);
+            getConfig().set("member-book.recovery.interval-ticks", 100L);
+            getConfig().set("member-book.recovery.recover-on-world-change", true);
+            getConfig().set("member-book.recovery.recover-from-open-container", true);
+            getConfig().set("member-book.recovery.remove-duplicates", true);
+        }
+
+        getConfig().set("config-version", 5);
         saveConfig();
     }
 
@@ -157,6 +169,11 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
             command.setExecutor(tp);
             command.setTabCompleter(tp);
         }
+
+        MemberBookAdminCommand memberBookAdmin = new MemberBookAdminCommand(this);
+        PluginCommand memberBookCommand = Objects.requireNonNull(getCommand("cdrmemberbook"));
+        memberBookCommand.setExecutor(memberBookAdmin);
+        memberBookCommand.setTabCompleter(memberBookAdmin);
     }
 
     public void openMenu(Player player) {
@@ -169,6 +186,10 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
 
     public void reloadMoonSignConfig() {
         reloadConfig();
+        if (memberBookService != null) {
+            memberBookService.restartEnforcement();
+            memberBookService.giveToOnlinePlayers();
+        }
     }
 
     public TeleportRequestManager requests() {
