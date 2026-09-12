@@ -40,6 +40,8 @@ public final class JavaMenuService implements Listener {
     private static final String REPORT_RESOLVED = "__report_resolved";
     private static final String REPORT_ALL = "__report_all";
     private static final String REPORT_REFRESH = "__report_refresh";
+    private static final String REPORT_RECENT = "__report_recent";
+    private static final String REPORT_SEARCH_HELP = "__report_search_help";
     private static final String REPORT_RESOLVE = "__report_resolve";
     private static final String REPORT_REOPEN = "__report_reopen";
     private static final String REPORT_DELETE = "__report_delete";
@@ -285,7 +287,7 @@ public final class JavaMenuService implements Listener {
         int resolved = plugin.reports().count(ReportService.Status.RESOLVED);
         int all = open + resolved;
 
-        MenuHolder holder = new MenuHolder(MenuHolder.Type.REPORT_CENTER, null, returnMenuId, 0, 27,
+        MenuHolder holder = new MenuHolder(MenuHolder.Type.REPORT_CENTER, null, returnMenuId, 0, 36,
                 "§8CdrMemberBook §7• §cReports");
         Inventory inventory = holder.getInventory();
         fillAll(inventory, filler(Material.BLACK_STAINED_GLASS_PANE));
@@ -298,7 +300,36 @@ public final class JavaMenuService implements Listener {
         inventory.setItem(12, navigationItem(Material.WRITTEN_BOOK, "&aResolved Reports &7(" + resolved + ")", REPORT_RESOLVED, "&7Lihat laporan yang sudah selesai."));
         inventory.setItem(14, navigationItem(Material.BOOK, "&fSemua Reports &7(" + all + ")", REPORT_ALL, "&7Lihat seluruh laporan."));
         inventory.setItem(16, navigationItem(Material.COMPASS, "&bRefresh", REPORT_REFRESH, "&7Perbarui jumlah laporan."));
-        inventory.setItem(22, navigationItem(Material.OAK_DOOR, "&eKembali", NAV_BACK, "&7Kembali ke Member Menu."));
+        if (plugin.getConfig().getBoolean("integrations.report.center.show-recent", true)) {
+            inventory.setItem(20, navigationItem(Material.CLOCK, "&eRecent Reports", REPORT_RECENT, "&7Lihat report terbaru."));
+        }
+        if (plugin.getConfig().getBoolean("integrations.report.center.show-search", true)) {
+            inventory.setItem(22, navigationItem(Material.NAME_TAG, "&bCari Report", REPORT_SEARCH_HELP,
+                    "&7Gunakan command search:\n&f/cdrmemberbook reports search <reporter|target|any> <nama>"));
+        }
+        inventory.setItem(31, navigationItem(Material.OAK_DOOR, "&eKembali", NAV_BACK, "&7Kembali ke Member Menu."));
+        player.openInventory(inventory);
+    }
+
+    private void showRecentReportList(Player player, String returnMenuId) {
+        if (!ensureReportStaff(player, returnMenuId)) return;
+        int limit = Math.max(1, Math.min(PAGE_SIZE, plugin.getConfig().getInt("integrations.report.recent-limit", 10)));
+        List<ReportService.ReportEntry> entries = plugin.reports().recent(limit, null);
+        MenuHolder holder = new MenuHolder(MenuHolder.Type.REPORT_LIST, null, returnMenuId, 0,
+                "ALL", 0, 54, "§8Reports §7• §eRecent");
+        Inventory inventory = holder.getInventory();
+        decorateFrame(inventory, player, 0, 1, "Recent Reports");
+        int slotIndex = 0;
+        for (ReportService.ReportEntry entry : entries) {
+            Material material = entry.status() == ReportService.Status.OPEN ? Material.WRITABLE_BOOK : Material.WRITTEN_BOOK;
+            ItemStack item = item(material, (entry.status() == ReportService.Status.OPEN ? "&c" : "&a") + "Report #" + entry.id() + " &8• &f" + entry.targetName(), List.of(
+                    "&7Reporter: &f" + entry.reporterName(), "&7Status: &f" + entry.status(), "&7Alasan: &f" + shorten(entry.reason(), 42), "", "&8» &fKlik untuk detail."));
+            ItemMeta meta = item.getItemMeta();
+            meta.getPersistentDataContainer().set(plugin.buttonKey(), PersistentDataType.STRING, REPORT_PREFIX + entry.id());
+            item.setItemMeta(meta);
+            inventory.setItem(CONTENT_SLOTS[slotIndex++], item);
+        }
+        inventory.setItem(49, navigationItem(Material.OAK_DOOR, "&eReport Center", NAV_BACK, "&7Kembali ke Report Center."));
         player.openInventory(inventory);
     }
 
@@ -308,6 +339,11 @@ public final class JavaMenuService implements Listener {
         if (REPORT_OPEN.equals(action)) showReportList(player, holder.menuId(), ReportService.Status.OPEN, 0);
         else if (REPORT_RESOLVED.equals(action)) showReportList(player, holder.menuId(), ReportService.Status.RESOLVED, 0);
         else if (REPORT_ALL.equals(action)) showReportList(player, holder.menuId(), null, 0);
+        else if (REPORT_RECENT.equals(action)) showRecentReportList(player, holder.menuId());
+        else if (REPORT_SEARCH_HELP.equals(action)) {
+            player.closeInventory();
+            player.sendMessage(Colors.legacy("&bCari report: &f/cdrmemberbook reports search <reporter|target|any> <nama> [open|resolved|all]"));
+        }
         else if (REPORT_REFRESH.equals(action)) showReportCenter(player, holder.menuId());
         else if (NAV_BACK.equals(action)) showConfiguredMenu(player, holder.menuId(), 0);
     }
@@ -386,6 +422,8 @@ public final class JavaMenuService implements Listener {
         details.add("&7Status: &f" + entry.status());
         details.add("&7Reporter: &f" + entry.reporterName());
         details.add("&7Target: &f" + entry.targetName());
+        details.add("&7Total report target: &f" + plugin.reports().countByTarget(entry.targetUuid(), null)
+                + " &8(OPEN: &f" + plugin.reports().countByTarget(entry.targetUuid(), ReportService.Status.OPEN) + "&8)");
         details.add("&7Waktu: &f" + entry.createdAt());
         details.add("&7Lokasi: &f" + entry.world() + " " + entry.x() + "," + entry.y() + "," + entry.z());
         details.add("");
@@ -396,6 +434,13 @@ public final class JavaMenuService implements Listener {
             details.add("&7Resolved by: &f" + entry.resolvedBy());
             details.add("&7Resolved at: &f" + entry.resolvedAt());
         }
+        if (!entry.notes().isEmpty()) {
+            ReportService.StaffNote note = entry.notes().get(entry.notes().size() - 1);
+            details.add("");
+            details.add("&eLatest note: &f" + shorten(note.text(), 60));
+            details.add("&8oleh " + note.staff());
+        }
+        details.add("&7Audit: &f" + entry.audit().size() + " &8| &7Notes: &f" + entry.notes().size());
         inventory.setItem(13, item(entry.status() == ReportService.Status.OPEN ? Material.WRITABLE_BOOK : Material.WRITTEN_BOOK,
                 (entry.status() == ReportService.Status.OPEN ? "&c" : "&a") + "&lReport #" + reportId, details));
         inventory.setItem(10, navigationItem(Material.OAK_DOOR, "&eKembali", NAV_BACK, "&7Kembali ke daftar report."));
@@ -406,6 +451,13 @@ public final class JavaMenuService implements Listener {
         if (plugin.getConfig().getBoolean("integrations.report.center.allow-delete", true)) {
             inventory.setItem(16, navigationItem(Material.BARRIER, "&cHapus Report", REPORT_DELETE, "&7Hapus laporan ini permanen."));
         }
+        inventory.setItem(22, item(Material.PAPER, "&eStaff Note / Audit", List.of(
+                "&7Tambah note lewat command:",
+                "&f/cdrmemberbook report note " + reportId + " <catatan>",
+                "",
+                "&7Lihat audit:",
+                "&f/cdrmemberbook report audit " + reportId
+        )));
         player.openInventory(inventory);
     }
 

@@ -10,9 +10,11 @@ import org.bukkit.entity.Player;
 import java.io.File;
 import java.io.IOException;
 import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -35,7 +37,7 @@ public final class ReportService {
     public SubmitResult submit(Player reporter, Player target, String rawReason) {
         if (!enabled()) return new SubmitResult(false, 0, 0, "disabled");
         if (reporter.getUniqueId().equals(target.getUniqueId())) return new SubmitResult(false, 0, 0, "self");
-        String reason = sanitizeReason(rawReason);
+        String reason = sanitizeText(rawReason);
         int min = Math.max(1, plugin.getConfig().getInt("integrations.report.min-reason-length", 3));
         int max = Math.max(min, plugin.getConfig().getInt("integrations.report.max-reason-length", 200));
         if (reason.length() < min) return new SubmitResult(false, 0, 0, "short");
@@ -45,10 +47,16 @@ public final class ReportService {
         long until = cooldownUntil.getOrDefault(reporter.getUniqueId(), 0L);
         if (until > now) return new SubmitResult(false, 0, Math.max(1L, (until - now + 999L) / 1000L), "cooldown");
 
+        DuplicateMatch duplicate = findDuplicate(reporter.getUniqueId(), target.getUniqueId(), now);
+        if (duplicate != null) {
+            return new SubmitResult(false, duplicate.id(), duplicate.waitSeconds(), "duplicate");
+        }
+
         int id = Math.max(1, data.getInt("next-id", 1));
         String base = "reports." + id + ".";
+        String createdAt = Instant.now().toString();
         data.set(base + "status", Status.OPEN.name());
-        data.set(base + "created-at", Instant.now().toString());
+        data.set(base + "created-at", createdAt);
         data.set(base + "reporter.name", reporter.getName());
         data.set(base + "reporter.uuid", reporter.getUniqueId().toString());
         data.set(base + "target.name", target.getName());
@@ -60,6 +68,9 @@ public final class ReportService {
         data.set(base + "location.z", reporter.getLocation().getBlockZ());
         data.set(base + "resolved-at", null);
         data.set(base + "resolved-by", null);
+        data.set(base + "notes", new ArrayList<>());
+        data.set(base + "audit", new ArrayList<>());
+        appendAuditInMemory(id, "CREATE", reporter.getName(), "Report dibuat untuk " + target.getName());
         data.set("next-id", id + 1);
         if (!save()) {
             reloadFromDisk();
@@ -94,14 +105,42 @@ public final class ReportService {
         return List.copyOf(result);
     }
 
+    public List<ReportEntry> search(String query, SearchField field, Status filter) {
+        String needle = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
+        if (needle.isBlank()) return list(filter);
+        SearchField effective = field == null ? SearchField.ANY : field;
+        return list(filter).stream().filter(entry -> switch (effective) {
+            case REPORTER -> contains(entry.reporterName(), needle) || contains(entry.reporterUuid(), needle);
+            case TARGET -> contains(entry.targetName(), needle) || contains(entry.targetUuid(), needle);
+            case ANY -> contains(entry.reporterName(), needle) || contains(entry.reporterUuid(), needle)
+                    || contains(entry.targetName(), needle) || contains(entry.targetUuid(), needle);
+        }).toList();
+    }
+
+    public List<ReportEntry> recent(int limit, Status filter) {
+        int safe = Math.max(1, Math.min(100, limit));
+        List<ReportEntry> entries = list(filter);
+        return List.copyOf(entries.subList(0, Math.min(safe, entries.size())));
+    }
+
     public int count(Status filter) { return list(filter).size(); }
 
+    public int countByTarget(String query, Status filter) {
+        return search(query, SearchField.TARGET, filter).size();
+    }
+
+    public int countByReporter(String query, Status filter) {
+        return search(query, SearchField.REPORTER, filter).size();
+    }
+
     public boolean resolve(int id, String staff) {
-        if (get(id) == null) return false;
+        ReportEntry entry = get(id);
+        if (entry == null) return false;
         String base = "reports." + id + ".";
         data.set(base + "status", Status.RESOLVED.name());
         data.set(base + "resolved-at", Instant.now().toString());
         data.set(base + "resolved-by", safeStaff(staff));
+        appendAuditInMemory(id, "RESOLVE", safeStaff(staff), "Status OPEN -> RESOLVED");
         if (save()) return true;
         reloadFromDisk();
         return false;
@@ -113,13 +152,39 @@ public final class ReportService {
         data.set(base + "status", Status.OPEN.name());
         data.set(base + "resolved-at", null);
         data.set(base + "resolved-by", null);
+        appendAuditInMemory(id, "REOPEN", safeStaff(staff), "Status RESOLVED -> OPEN");
         if (!save()) { reloadFromDisk(); return false; }
         plugin.getLogger().info("Report #" + id + " reopened by " + safeStaff(staff));
         return true;
     }
 
-    public boolean delete(int id) {
+    public boolean addNote(int id, String staff, String rawNote) {
         if (get(id) == null) return false;
+        String note = sanitizeText(rawNote);
+        int maxLength = Math.max(10, plugin.getConfig().getInt("integrations.report.audit.max-note-length", 240));
+        if (note.isBlank()) return false;
+        if (note.length() > maxLength) note = note.substring(0, maxLength).trim();
+        String path = "reports." + id + ".notes";
+        List<Map<?, ?>> current = data.getMapList(path);
+        List<Map<String, Object>> notes = new ArrayList<>();
+        for (Map<?, ?> raw : current) notes.add(copyMap(raw));
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("at", Instant.now().toString());
+        map.put("staff", safeStaff(staff));
+        map.put("text", note);
+        notes.add(map);
+        trimFront(notes, Math.max(1, plugin.getConfig().getInt("integrations.report.audit.max-notes", 20)));
+        data.set(path, notes);
+        appendAuditInMemory(id, "NOTE", safeStaff(staff), note);
+        if (save()) return true;
+        reloadFromDisk();
+        return false;
+    }
+
+    public boolean delete(int id) {
+        ReportEntry entry = get(id);
+        if (entry == null) return false;
+        plugin.getLogger().info("Report #" + id + " deleted | " + entry.reporterName() + " -> " + entry.targetName());
         data.set("reports." + id, null);
         if (save()) return true;
         reloadFromDisk();
@@ -132,21 +197,90 @@ public final class ReportService {
         catch (IllegalArgumentException ignored) { return null; }
     }
 
+    public SearchField parseSearchField(String raw) {
+        if (raw == null || raw.isBlank() || raw.equalsIgnoreCase("any") || raw.equalsIgnoreCase("player")) return SearchField.ANY;
+        if (raw.equalsIgnoreCase("reporter")) return SearchField.REPORTER;
+        if (raw.equalsIgnoreCase("target")) return SearchField.TARGET;
+        return null;
+    }
+
+    private DuplicateMatch findDuplicate(UUID reporter, UUID target, long nowMillis) {
+        long windowSeconds = Math.max(0L, plugin.getConfig().getLong("integrations.report.duplicate-window-seconds", 300L));
+        if (windowSeconds <= 0L) return null;
+        long windowMillis = windowSeconds * 1000L;
+        for (ReportEntry entry : list(null)) {
+            if (!entry.reporterUuid().equalsIgnoreCase(reporter.toString()) || !entry.targetUuid().equalsIgnoreCase(target.toString())) continue;
+            long created = instantMillis(entry.createdAt());
+            if (created <= 0L) continue;
+            long age = nowMillis - created;
+            if (age >= 0L && age < windowMillis) {
+                long wait = Math.max(1L, (windowMillis - age + 999L) / 1000L);
+                return new DuplicateMatch(entry.id(), wait);
+            }
+        }
+        return null;
+    }
+
     private ReportEntry readEntry(int id) {
         String base = "reports." + id + ".";
         if (!data.isConfigurationSection("reports." + id)) return null;
         Status status;
         try { status = Status.valueOf(data.getString(base + "status", "OPEN").toUpperCase(Locale.ROOT)); }
         catch (IllegalArgumentException ignored) { status = Status.OPEN; }
+        List<StaffNote> notes = new ArrayList<>();
+        for (Map<?, ?> raw : data.getMapList(base + "notes")) {
+            notes.add(new StaffNote(string(raw.get("at")), string(raw.get("staff")), string(raw.get("text"))));
+        }
+        List<AuditEntry> audit = new ArrayList<>();
+        for (Map<?, ?> raw : data.getMapList(base + "audit")) {
+            audit.add(new AuditEntry(string(raw.get("at")), string(raw.get("action")), string(raw.get("actor")), string(raw.get("detail"))));
+        }
         return new ReportEntry(id, status, data.getString(base + "created-at", "unknown"),
                 data.getString(base + "reporter.name", "unknown"), data.getString(base + "reporter.uuid", ""),
                 data.getString(base + "target.name", "unknown"), data.getString(base + "target.uuid", ""),
                 data.getString(base + "reason", ""), data.getString(base + "world", "unknown"),
                 data.getInt(base + "location.x"), data.getInt(base + "location.y"), data.getInt(base + "location.z"),
-                data.getString(base + "resolved-at", ""), data.getString(base + "resolved-by", ""));
+                data.getString(base + "resolved-at", ""), data.getString(base + "resolved-by", ""),
+                List.copyOf(notes), List.copyOf(audit));
     }
 
-    private String sanitizeReason(String raw) {
+    private void appendAuditInMemory(int id, String action, String actor, String detail) {
+        String path = "reports." + id + ".audit";
+        List<Map<?, ?>> current = data.getMapList(path);
+        List<Map<String, Object>> audit = new ArrayList<>();
+        for (Map<?, ?> raw : current) audit.add(copyMap(raw));
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("at", Instant.now().toString());
+        map.put("action", action);
+        map.put("actor", safeStaff(actor));
+        map.put("detail", sanitizeText(detail));
+        audit.add(map);
+        trimFront(audit, Math.max(1, plugin.getConfig().getInt("integrations.report.audit.max-history", 50)));
+        data.set(path, audit);
+    }
+
+    private Map<String, Object> copyMap(Map<?, ?> raw) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : raw.entrySet()) if (entry.getKey() != null) out.put(entry.getKey().toString(), entry.getValue());
+        return out;
+    }
+
+    private <T> void trimFront(List<T> list, int max) {
+        while (list.size() > max) list.remove(0);
+    }
+
+    private boolean contains(String value, String needleLower) {
+        return value != null && value.toLowerCase(Locale.ROOT).contains(needleLower);
+    }
+
+    private long instantMillis(String raw) {
+        try { return Instant.parse(raw).toEpochMilli(); }
+        catch (DateTimeParseException | NullPointerException ignored) { return -1L; }
+    }
+
+    private String string(Object value) { return value == null ? "" : value.toString(); }
+
+    private String sanitizeText(String raw) {
         String input = raw == null ? "" : raw;
         if (!plugin.getConfig().getBoolean("integrations.report.sanitize-control-characters", true)) return input.trim();
         StringBuilder out = new StringBuilder(input.length());
@@ -187,8 +321,13 @@ public final class ReportService {
     private void reloadFromDisk() { data = YamlConfiguration.loadConfiguration(file); }
 
     public enum Status { OPEN, RESOLVED }
+    public enum SearchField { REPORTER, TARGET, ANY }
     public record SubmitResult(boolean success, int id, long waitSeconds, String reasonCode) { }
+    public record StaffNote(String at, String staff, String text) { }
+    public record AuditEntry(String at, String action, String actor, String detail) { }
     public record ReportEntry(int id, Status status, String createdAt, String reporterName, String reporterUuid,
                               String targetName, String targetUuid, String reason, String world,
-                              int x, int y, int z, String resolvedAt, String resolvedBy) { }
+                              int x, int y, int z, String resolvedAt, String resolvedBy,
+                              List<StaffNote> notes, List<AuditEntry> audit) { }
+    private record DuplicateMatch(int id, long waitSeconds) { }
 }

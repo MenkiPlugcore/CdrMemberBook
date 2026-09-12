@@ -662,6 +662,10 @@ public final class BedrockFormService {
                     } else if ("cooldown".equals(result.reasonCode())) {
                         plugin.message(player, "report-cooldown", "%seconds%", Long.toString(result.waitSeconds()));
                         showConfiguredMenu(player, returnMenuId);
+                    } else if ("duplicate".equals(result.reasonCode())) {
+                        plugin.message(player, "report-duplicate", "%id%", Integer.toString(result.id()),
+                                "%seconds%", Long.toString(result.waitSeconds()));
+                        showConfiguredMenu(player, returnMenuId);
                     } else if ("self".equals(result.reasonCode())) {
                         plugin.message(player, "cannot-report-self");
                         showReportPlayerSelect(player, returnMenuId);
@@ -693,6 +697,8 @@ public final class BedrockFormService {
         int open = plugin.reports().count(ReportService.Status.OPEN);
         int resolved = plugin.reports().count(ReportService.Status.RESOLVED);
         int all = open + resolved;
+        boolean showRecent = plugin.getConfig().getBoolean("integrations.report.center.show-recent", true);
+        boolean showSearch = plugin.getConfig().getBoolean("integrations.report.center.show-search", true);
 
         SimpleForm.Builder builder = SimpleForm.builder()
                 .title("Report Center")
@@ -701,19 +707,83 @@ public final class BedrockFormService {
         addButton(builder, "Open Reports (" + open + ")", "report", "textures/items/book_writable");
         addButton(builder, "Resolved Reports (" + resolved + ")", "report", "textures/items/book_written");
         addButton(builder, "Semua Reports (" + all + ")", "report", "textures/items/book_normal");
+        if (showRecent) addButton(builder, "Recent Reports", "refresh", "textures/items/clock_item");
+        if (showSearch) addButton(builder, "Cari Reporter / Target", "player", "textures/items/name_tag");
         addButton(builder, "Refresh", "refresh", "textures/items/compass_item");
         addButton(builder, "Kembali", "back", "textures/items/arrow");
 
+        int recentIndex = showRecent ? 3 : -1;
+        int searchIndex = showSearch ? (showRecent ? 4 : 3) : -1;
+        int refreshIndex = 3 + (showRecent ? 1 : 0) + (showSearch ? 1 : 0);
+        int backIndex = refreshIndex + 1;
+        send(player, builder.validResultHandler(response -> sync(() -> {
+            if (!ensureReportStaff(player, returnMenuId)) return;
+            int selected = response.clickedButtonId();
+            if (selected == 0) showReportList(player, returnMenuId, ReportService.Status.OPEN, 1);
+            else if (selected == 1) showReportList(player, returnMenuId, ReportService.Status.RESOLVED, 1);
+            else if (selected == 2) showReportList(player, returnMenuId, null, 1);
+            else if (selected == recentIndex) showRecentReportList(player, returnMenuId);
+            else if (selected == searchIndex) showReportSearchType(player, returnMenuId);
+            else if (selected == refreshIndex) showReportCenter(player, returnMenuId);
+            else if (selected == backIndex) showConfiguredMenu(player, returnMenuId);
+        })).build());
+    }
+
+    private void showRecentReportList(Player player, String returnMenuId) {
+        if (!ensureReportStaff(player, returnMenuId)) return;
+        int limit = Math.max(1, Math.min(20, plugin.getConfig().getInt("integrations.report.recent-limit", 10)));
+        showReportCustomList(player, returnMenuId, "Recent Reports", plugin.reports().recent(limit, null));
+    }
+
+    private void showReportSearchType(Player player, String returnMenuId) {
+        if (!ensureReportStaff(player, returnMenuId)) return;
+        SimpleForm.Builder builder = SimpleForm.builder().title("Cari Report").content("Cari berdasarkan nama/UUID reporter atau target.");
+        addButton(builder, "Cari Reporter", "player", "textures/items/name_tag");
+        addButton(builder, "Cari Target", "player", "textures/items/name_tag");
+        addButton(builder, "Cari Keduanya", "player", "textures/items/compass_item");
+        addButton(builder, "Kembali", "back", "textures/items/arrow");
         send(player, builder.validResultHandler(response -> sync(() -> {
             if (!ensureReportStaff(player, returnMenuId)) return;
             switch (response.clickedButtonId()) {
-                case 0 -> showReportList(player, returnMenuId, ReportService.Status.OPEN, 1);
-                case 1 -> showReportList(player, returnMenuId, ReportService.Status.RESOLVED, 1);
-                case 2 -> showReportList(player, returnMenuId, null, 1);
+                case 0 -> showReportSearchInput(player, returnMenuId, ReportService.SearchField.REPORTER);
+                case 1 -> showReportSearchInput(player, returnMenuId, ReportService.SearchField.TARGET);
+                case 2 -> showReportSearchInput(player, returnMenuId, ReportService.SearchField.ANY);
                 case 3 -> showReportCenter(player, returnMenuId);
-                case 4 -> showConfiguredMenu(player, returnMenuId);
                 default -> { }
             }
+        })).build());
+    }
+
+    private void showReportSearchInput(Player player, String returnMenuId, ReportService.SearchField field) {
+        CustomForm form = CustomForm.builder()
+                .title("Cari Report • " + field.name())
+                .input("Nama / UUID player", "contoh: Caderaaa", "")
+                .closedOrInvalidResultHandler(() -> sync(() -> showReportSearchType(player, returnMenuId)))
+                .validResultHandler(response -> sync(() -> {
+                    if (!ensureReportStaff(player, returnMenuId)) return;
+                    String query = response.asInput(0);
+                    if (query == null || query.trim().isEmpty()) { showReportSearchType(player, returnMenuId); return; }
+                    showReportCustomList(player, returnMenuId, "Search " + field.name(), plugin.reports().search(query.trim(), field, null));
+                })).build();
+        send(player, form);
+    }
+
+    private void showReportCustomList(Player player, String returnMenuId, String title, List<ReportService.ReportEntry> entries) {
+        if (!ensureReportStaff(player, returnMenuId)) return;
+        SimpleForm.Builder builder = SimpleForm.builder().title(title)
+                .content(entries.isEmpty() ? "Tidak ada report yang cocok." : "Ditemukan " + entries.size() + " report.");
+        int max = Math.min(20, entries.size());
+        for (int i = 0; i < max; i++) {
+            ReportService.ReportEntry entry = entries.get(i);
+            addButton(builder, "#" + entry.id() + " • " + entry.targetName() + "\n" + entry.status() + " • oleh " + entry.reporterName(),
+                    "report", entry.status() == ReportService.Status.OPEN ? "textures/items/book_writable" : "textures/items/book_written");
+        }
+        addButton(builder, "Kembali ke Report Center", "back", "textures/items/arrow");
+        send(player, builder.validResultHandler(response -> sync(() -> {
+            if (!ensureReportStaff(player, returnMenuId)) return;
+            int selected = response.clickedButtonId();
+            if (selected >= 0 && selected < max) showReportDetail(player, returnMenuId, null, 1, entries.get(selected).id());
+            else if (selected == max) showReportCenter(player, returnMenuId);
         })).build());
     }
 
@@ -784,6 +854,8 @@ public final class BedrockFormService {
                 .append("Status: ").append(entry.status()).append('\n')
                 .append("Reporter: ").append(entry.reporterName()).append('\n')
                 .append("Target: ").append(entry.targetName()).append('\n')
+                .append("Total report target: ").append(plugin.reports().countByTarget(entry.targetUuid(), null))
+                .append(" (OPEN: ").append(plugin.reports().countByTarget(entry.targetUuid(), ReportService.Status.OPEN)).append(")\n")
                 .append("Waktu: ").append(entry.createdAt()).append('\n')
                 .append("Lokasi: ").append(entry.world()).append(' ')
                 .append(entry.x()).append(',').append(entry.y()).append(',').append(entry.z()).append("\n\n")
@@ -791,6 +863,24 @@ public final class BedrockFormService {
         if (entry.status() == ReportService.Status.RESOLVED) {
             content.append("\n\nResolved by: ").append(entry.resolvedBy())
                     .append("\nResolved at: ").append(entry.resolvedAt());
+        }
+        int noteLimit = Math.max(1, plugin.getConfig().getInt("integrations.report.center.detail-note-limit", 3));
+        if (!entry.notes().isEmpty()) {
+            content.append("\n\nStaff Notes:");
+            int startNote = Math.max(0, entry.notes().size() - noteLimit);
+            for (int i = startNote; i < entry.notes().size(); i++) {
+                ReportService.StaffNote note = entry.notes().get(i);
+                content.append("\n- ").append(note.staff()).append(": ").append(note.text());
+            }
+        }
+        int auditLimit = Math.max(1, plugin.getConfig().getInt("integrations.report.center.detail-audit-limit", 5));
+        if (!entry.audit().isEmpty()) {
+            content.append("\n\nAudit:");
+            int startAudit = Math.max(0, entry.audit().size() - auditLimit);
+            for (int i = startAudit; i < entry.audit().size(); i++) {
+                ReportService.AuditEntry audit = entry.audit().get(i);
+                content.append("\n- ").append(audit.action()).append(" by ").append(audit.actor());
+            }
         }
 
         boolean allowDelete = plugin.getConfig().getBoolean("integrations.report.center.allow-delete", true);
@@ -802,11 +892,13 @@ public final class BedrockFormService {
         } else {
             addButton(builder, "Reopen Report", "refresh", "textures/items/compass_item");
         }
+        addButton(builder, "Tambah Catatan Staff", "report", "textures/items/paper");
         if (allowDelete) addButton(builder, "Hapus Report", "delete", "textures/items/barrier");
         addButton(builder, "Kembali", "back", "textures/items/arrow");
 
-        int deleteIndex = allowDelete ? 1 : -1;
-        int backIndex = allowDelete ? 2 : 1;
+        int noteIndex = 1;
+        int deleteIndex = allowDelete ? 2 : -1;
+        int backIndex = allowDelete ? 3 : 2;
         send(player, builder.validResultHandler(response -> sync(() -> {
             if (!ensureReportStaff(player, returnMenuId)) return;
             int selected = response.clickedButtonId();
@@ -815,12 +907,34 @@ public final class BedrockFormService {
                         entry.status() == ReportService.Status.OPEN ? "resolve" : "reopen");
                 return;
             }
+            if (selected == noteIndex) {
+                showReportNoteInput(player, returnMenuId, filter, page, reportId);
+                return;
+            }
             if (selected == deleteIndex) {
                 showReportActionConfirm(player, returnMenuId, filter, page, reportId, "delete");
                 return;
             }
             if (selected == backIndex) showReportList(player, returnMenuId, filter, page);
         })).build());
+    }
+
+    private void showReportNoteInput(Player player, String returnMenuId, ReportService.Status filter, int page, int reportId) {
+        if (!ensureReportStaff(player, returnMenuId)) return;
+        CustomForm form = CustomForm.builder()
+                .title("Catatan Report #" + reportId)
+                .input("Catatan staff", "contoh: Sudah cek log, menunggu bukti tambahan", "")
+                .closedOrInvalidResultHandler(() -> sync(() -> showReportDetail(player, returnMenuId, filter, page, reportId)))
+                .validResultHandler(response -> sync(() -> {
+                    if (!ensureReportStaff(player, returnMenuId)) return;
+                    String note = response.asInput(0);
+                    if (note == null || note.trim().isEmpty()) { showReportDetail(player, returnMenuId, filter, page, reportId); return; }
+                    if (plugin.reports().addNote(reportId, player.getName(), note)) {
+                        plugin.message(player, "report-note-added", "%id%", Integer.toString(reportId));
+                    } else plugin.message(player, "report-action-failed");
+                    showReportDetail(player, returnMenuId, filter, page, reportId);
+                })).build();
+        send(player, form);
     }
 
     private void showReportActionConfirm(Player player, String returnMenuId, ReportService.Status filter,

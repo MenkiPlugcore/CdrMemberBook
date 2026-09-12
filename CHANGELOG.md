@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.9.5 - Report QoL & Audit
+
+- Added anti-duplicate reporter-to-target window with existing report ID feedback.
+- Added reporter/target/ANY search, recent reports, per-player report statistics and target report counts.
+- Added persistent staff notes and bounded audit history for CREATE/RESOLVE/REOPEN/NOTE actions.
+- Added Bedrock Report Center search, recent reports and native staff-note input.
+- Added Java recent reports plus richer report detail with counts, notes and audit metadata.
+- Added admin report `note` and `audit` actions plus `reports search`, `recent`, and `player` lookup commands.
+
+
 ## 1.9.4 - Java Menu UI & Report Center
 
 - Reworked `/menu` on Java into a polished fixed 6-row inventory layout with frame decorations and centered content slots.

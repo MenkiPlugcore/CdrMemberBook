@@ -104,7 +104,7 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
         memberBookService.giveToOnlinePlayers();
         memberBookService.startEnforcement();
         getLogger().info("Member Book mode: " + memberBookService.modeName());
-        getLogger().info("CdrMemberBook v1.9.4 enabled.");
+        getLogger().info("CdrMemberBook v1.9.5 enabled.");
     }
 
     @Override
@@ -277,7 +277,19 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
             }
         }
 
-        getConfig().set("config-version", 21);
+        if (configVersion < 22) {
+            getConfig().set("integrations.report.duplicate-window-seconds", 300L);
+            getConfig().set("integrations.report.recent-limit", 10);
+            getConfig().set("integrations.report.audit.max-history", 50);
+            getConfig().set("integrations.report.audit.max-notes", 20);
+            getConfig().set("integrations.report.audit.max-note-length", 240);
+            getConfig().set("integrations.report.center.show-recent", true);
+            getConfig().set("integrations.report.center.show-search", true);
+            getConfig().set("integrations.report.center.detail-note-limit", 3);
+            getConfig().set("integrations.report.center.detail-audit-limit", 5);
+        }
+
+        getConfig().set("config-version", 22);
         saveConfig();
     }
 

@@ -1,5 +1,5 @@
-# CdrMemberBook v1.9.4
-config-version: 21
+# CdrMemberBook v1.9.5
+config-version: 22
 prefix: '&8[&dCdrMemberBook&8] &r'
 
 teleport:
@@ -214,6 +214,10 @@ integrations:
     # Built-in native Bedrock report flow. Tidak membutuhkan plugin report eksternal.
     enabled: true
     cooldown-seconds: 60
+    # Reporter yang sama tidak bisa spam target yang sama dalam window ini. 0 = disable.
+    duplicate-window-seconds: 300
+    # Jumlah default untuk daftar Recent Reports.
+    recent-limit: 10
     min-reason-length: 3
     max-reason-length: 200
     # Bersihkan newline/control character dari alasan sebelum disimpan/log/hook.
@@ -223,11 +227,19 @@ integrations:
     staff-permission: 'cdrmemberbook.staff.report'
     # Optional hook setelah report tersimpan. Placeholder: %id%, %reporter%, %target%, %reason%.
     console-command: ''
-    # Native Bedrock staff Report Center. Java staff UI akan ditambahkan terpisah.
+    audit:
+      max-history: 50
+      max-notes: 20
+      max-note-length: 240
+    # Native Java + Bedrock staff Report Center. Java staff UI akan ditambahkan terpisah.
     center:
       enabled: true
       page-size: 8
       allow-delete: true
+      show-recent: true
+      show-search: true
+      detail-note-limit: 3
+      detail-audit-limit: 5
 
 # Java inventory GUI presentation. /menu on Java opens this native GUI.
 java-menu:
@@ -530,6 +542,8 @@ messages:
   report-reason-too-short: '&eAlasan laporan minimal &f%min% &ekarakter.'
   report-sent: '&aLaporan &f#%id% &auntuk &f%player% &aberhasil dikirim ke staff.'
   report-cooldown: '&eTunggu &f%seconds%s &esebelum membuat laporan lagi.'
+  report-duplicate: '&eKamu baru saja melaporkan player ini. Report sebelumnya: &f#%id%&e. Coba lagi dalam &f%seconds%s&e.'
+  report-note-added: '&aCatatan staff ditambahkan ke report &f#%id%&a.'
   cannot-report-self: '&cKamu tidak bisa melaporkan diri sendiri.'
   report-failed: '&cLaporan tidak dapat dikirim. Coba lagi atau hubungi staff.'
   report-not-found: '&cReport &f#%id% &ctidak ditemukan atau sudah dihapus.'
