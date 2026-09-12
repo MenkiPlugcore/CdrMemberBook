@@ -1,9 +1,9 @@
 name: CdrMemberBook
-version: '1.8.0'
+version: '1.8.1'
 main: id.cadera.memberbook.CdrMemberBookPlugin
 api-version: '1.21'
 author: CADERA
-description: Config-driven Bedrock/Java member menu with native TP, homes, pay and AxTrade flows for MOONSIGN.
+description: Config-driven Bedrock/Java member menu with smart integrations, native reports, homes, pay and trade flows.
 softdepend:
   - floodgate
   - Essentials
@@ -12,56 +12,102 @@ softdepend:
 
 commands:
   menu:
-    description: Open MOONSIGN member menu or reload its config.
+    description: Open CdrMemberBook member menu or reload its config.
     usage: /menu [reload]
-    permission: moonsignmenu.menu
+    permission: cdrmemberbook.menu
   cdrmemberbook:
     description: Admin tools for Member Book give, remove, repair and recovery.
     usage: /cdrmemberbook <give|remove|fix|refresh|status|tutorialreset|tutorialshow> <player>
-    permission: moonsignmenu.admin.memberbook
+    permission: cdrmemberbook.admin.memberbook
   tpa:
     description: Request teleport to another player.
     usage: /tpa <player>
-    permission: moonsignmenu.tpa
+    permission: cdrmemberbook.tpa
   tpahere:
     description: Request another player to teleport to you.
     usage: /tpahere <player>
-    permission: moonsignmenu.tpahere
+    permission: cdrmemberbook.tpahere
   tpaccept:
     description: Accept your pending teleport request.
     usage: /tpaccept
     aliases: [tpyes]
-    permission: moonsignmenu.tpaccept
+    permission: cdrmemberbook.tpaccept
   tpdeny:
     description: Deny your pending teleport request.
     usage: /tpdeny
     aliases: [tpno]
-    permission: moonsignmenu.tpdeny
+    permission: cdrmemberbook.tpdeny
   tptoggle:
     description: Enable or disable incoming teleport requests.
     usage: /tptoggle
-    permission: moonsignmenu.tptoggle
+    permission: cdrmemberbook.tptoggle
 
 permissions:
+  cdrmemberbook.menu:
+    default: true
+  cdrmemberbook.tpa:
+    default: true
+  cdrmemberbook.tpahere:
+    default: true
+  cdrmemberbook.tpaccept:
+    default: true
+  cdrmemberbook.tpdeny:
+    default: true
+  cdrmemberbook.tptoggle:
+    default: true
+  cdrmemberbook.admin.reload:
+    default: op
+  cdrmemberbook.admin.memberbook:
+    default: op
+  cdrmemberbook.staff.report:
+    default: op
+  cdrmemberbook.bypass.cooldown:
+    default: op
+  cdrmemberbook.bypass.disabled:
+    default: op
+  # Legacy permission aliases from pre-v1.8.1 builds.
+  # Keep these so existing LuckPerms assignments continue to grant the new CdrMemberBook nodes.
   moonsignmenu.menu:
-    default: true
+    default: false
+    children:
+      cdrmemberbook.menu: true
   moonsignmenu.tpa:
-    default: true
+    default: false
+    children:
+      cdrmemberbook.tpa: true
   moonsignmenu.tpahere:
-    default: true
+    default: false
+    children:
+      cdrmemberbook.tpahere: true
   moonsignmenu.tpaccept:
-    default: true
+    default: false
+    children:
+      cdrmemberbook.tpaccept: true
   moonsignmenu.tpdeny:
-    default: true
+    default: false
+    children:
+      cdrmemberbook.tpdeny: true
   moonsignmenu.tptoggle:
-    default: true
+    default: false
+    children:
+      cdrmemberbook.tptoggle: true
   moonsignmenu.admin.reload:
-    default: op
+    default: false
+    children:
+      cdrmemberbook.admin.reload: true
   moonsignmenu.admin.memberbook:
-    default: op
+    default: false
+    children:
+      cdrmemberbook.admin.memberbook: true
   moonsignmenu.staff.report:
-    default: op
+    default: false
+    children:
+      cdrmemberbook.staff.report: true
   moonsignmenu.bypass.cooldown:
-    default: op
+    default: false
+    children:
+      cdrmemberbook.bypass.cooldown: true
   moonsignmenu.bypass.disabled:
-    default: op
+    default: false
+    children:
+      cdrmemberbook.bypass.disabled: true

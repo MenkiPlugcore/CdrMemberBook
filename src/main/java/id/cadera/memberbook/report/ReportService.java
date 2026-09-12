@@ -71,7 +71,7 @@ public final class ReportService {
     }
 
     private void notifyStaff(int id, Player reporter, Player target, String reason) {
-        String permission = plugin.getConfig().getString("integrations.report.staff-permission", "moonsignmenu.staff.report");
+        String permission = plugin.getConfig().getString("integrations.report.staff-permission", "cdrmemberbook.staff.report");
         String message = "&8[&cREPORT #" + id + "&8] &f" + reporter.getName() + " &7melaporkan &f"
                 + target.getName() + "&7: &f" + reason;
         for (Player online : Bukkit.getOnlinePlayers()) {

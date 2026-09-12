@@ -32,7 +32,7 @@ public final class TeleportRequestManager {
             return false;
         }
 
-        if (toggleStore.isDisabled(target.getUniqueId()) && !requester.hasPermission("moonsignmenu.bypass.disabled")) {
+        if (toggleStore.isDisabled(target.getUniqueId()) && !requester.hasPermission("cdrmemberbook.bypass.disabled")) {
             plugin.message(requester, "requests-disabled", "%player%", target.getName());
             return false;
         }
@@ -49,7 +49,7 @@ public final class TeleportRequestManager {
             return false;
         }
 
-        if (!requester.hasPermission("moonsignmenu.bypass.cooldown")) {
+        if (!requester.hasPermission("cdrmemberbook.bypass.cooldown")) {
             int cooldown = Math.max(0, plugin.getConfig().getInt("teleport.request-cooldown-seconds", 5));
             long last = lastSent.getOrDefault(requester.getUniqueId(), 0L);
             long remainingMs = (last + cooldown * 1000L) - System.currentTimeMillis();

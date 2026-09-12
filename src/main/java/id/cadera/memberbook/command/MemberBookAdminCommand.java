@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Locale;
 
 public final class MemberBookAdminCommand implements CommandExecutor, TabCompleter {
-    private static final String PERMISSION = "moonsignmenu.admin.memberbook";
+    private static final String PERMISSION = "cdrmemberbook.admin.memberbook";
 
     private final CdrMemberBookPlugin plugin;
 

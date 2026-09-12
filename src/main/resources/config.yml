@@ -1,6 +1,6 @@
-# CdrMemberBook v1.8.0
+# CdrMemberBook v1.8.1
 config-version: 13
-prefix: '&8[&dMOONSIGN&8] &r'
+prefix: '&8[&dCdrMemberBook&8] &r'
 
 teleport:
   request-expire-seconds: 30
@@ -79,16 +79,16 @@ member-book:
     remove-duplicates: true
 
   material: BOOK
-  name: '&d&lMOONSIGN &fMember Book'
+  name: '&d&lCdrMemberBook'
   lore:
   - '&7Klik kanan untuk membuka Menu Member.'
-  - '&8Item menu pribadi MOONSIGN.'
+  - '&8Member Book dari CdrMemberBook.'
 
   # Book Customization v1.4.1
   customization:
     # 0 = nonaktif. Cocok untuk resource pack Java / legacy Geyser custom item mapping.
     custom-model-data: 0
-    # Format namespace:key, contoh: moonsign:member_book. Kosong = model vanilla.
+    # Format namespace:key, contoh: cdrmemberbook:member_book. Kosong = model vanilla.
     # Untuk Bedrock, model custom tetap membutuhkan Geyser custom mapping + Bedrock resource pack.
     item-model: ''
     # true = paksa glint, false = paksa tanpa glint, default = perilaku vanilla.
@@ -128,7 +128,7 @@ tutorial:
   open-menu-after-complete: true
 
   welcome:
-    title: '&d&lMOONSIGN'
+    title: '&d&lCdrMemberBook'
     content: '&fSelamat datang, &d%player%&f!\n&7Member Book adalah pusat menu pribadi kamu di server.'
     button: 'Lanjut'
 
@@ -216,7 +216,7 @@ integrations:
     cooldown-seconds: 60
     min-reason-length: 3
     max-reason-length: 200
-    staff-permission: 'moonsignmenu.staff.report'
+    staff-permission: 'cdrmemberbook.staff.report'
     # Optional hook setelah report tersimpan. Placeholder: %id%, %reporter%, %target%, %reason%.
     console-command: ''
 
@@ -241,7 +241,7 @@ menu:
   auto-detect-command-dependencies: true
 
   main:
-    title: '&d&lMOONSIGN &fMenu Member'
+    title: '&d&lCdrMemberBook &fMenu'
     content: '&7Pilih fitur yang ingin kamu buka.'
     buttons:
       teleport:

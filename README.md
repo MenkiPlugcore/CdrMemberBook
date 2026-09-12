@@ -1,4 +1,4 @@
-# CdrMemberBook v1.8.0
+# CdrMemberBook v1.8.1
 
 Standalone Paper plugin by **CADERA** untuk member menu Minecraft Java + Bedrock. Project ini dipisahkan dari monorepo `MenkiPlugcore/plugin` agar release, maintenance, issue, dan update berikutnya dapat dikelola langsung dari repository ini.
 
@@ -28,7 +28,7 @@ Standalone Paper plugin by **CADERA** untuk member menu Minecraft Java + Bedrock
 - Member Book tetap tidak dapat dibuang jika `prevent-drop: true`.
 - Safety recovery otomatis memulihkan buku yang hilang dan membersihkan duplikat.
 
-## Book Modes v1.8.0
+## Book Modes v1.8.1
 
 Behavior Member Book sekarang dapat dipilih melalui `member-book.mode` tanpa compile ulang:
 
@@ -58,7 +58,7 @@ Config lama tetap aman: `permanent-hotbar: true` dimigrasikan menjadi `LOCKED_HO
 
 ```yaml
 member-book:
-  name: '&d&lMOONSIGN &f%player%'
+  name: '&d&lCdrMemberBook &f%player%'
   lore:
     - '&7Rank: &f%luckperms_prefix%'
     - '&7Balance: &a%vault_eco_balance_formatted%'
@@ -82,7 +82,7 @@ PlaceholderAPI bersifat optional/soft dependency. Expansion seperti LuckPerms/Va
 ```yaml
 member-book:
   material: BOOK
-  name: '&d&lMOONSIGN &fMember Book'
+  name: '&d&lCdrMemberBook &fMember Book'
   lore:
     - '&7Klik kanan untuk membuka Menu Member.'
   customization:
@@ -133,7 +133,7 @@ Java player tetap tidak menerima Member Book saat `bedrock-only: true`. Java tet
 
 ## Admin Recovery Commands
 
-Permission: `moonsignmenu.admin.memberbook` (default OP).
+Permission: `cdrmemberbook.admin.memberbook` (default OP).
 
 | Command | Fungsi |
 |---|---|
@@ -238,21 +238,26 @@ target/CdrMemberBook-1.6.0.jar
 
 ## Migration
 
-Source awal project ini berasal dari `plugins/MoonSignMenu` pada repository `MenkiPlugcore/plugin`. Mulai sekarang pengembangan CdrMemberBook dilakukan di repository standalone ini.
+Source awal project ini berasal dari `plugins/CdrMemberBookMenu` pada repository `MenkiPlugcore/plugin`. Mulai sekarang pengembangan CdrMemberBook dilakukan di repository standalone ini.
 
 Saat upgrade dari config v4 ke v5, plugin otomatis menambahkan dan mengaktifkan default recovery `v1.4.0` tanpa perlu menghapus `config.yml` lama.
 
 
-## Book Modes Stability v1.8.0
+## Book Modes Stability v1.8.1
 
 Use `/cdrmemberbook status <player>` to inspect active mode, visible copies, reserved slot, recovery suppression, external/drop protection and dynamic refresh state. Invalid Book Mode config values safely fall back to `MOVABLE` and produce a startup/reload warning.
 
 
-## First Join Tutorial v1.8.0
+## First Join Tutorial v1.8.1
 
 New Bedrock players receive a native three-step tutorial after join. Completion is persisted in `plugins/CdrMemberBook/tutorial-data.yml`. Existing players are skipped by default (`tutorial.show-to-existing-unseen: false`). Admins can test/reset with `/cdrmemberbook tutorialshow <player>` and `/cdrmemberbook tutorialreset <player>`.
 
 
-## Smart Menu Conditions v1.8.0
+## Smart Menu Conditions v1.8.1
 
 Buttons are hidden automatically when their backing command or integration is unavailable. Command buttons auto-detect the root command, and optional `requires-plugins`, `requires-command`, and `auto-detect-command` fields are supported per button. Bedrock `type: report` uses CdrMemberBook's native report flow and stores reports in `plugins/CdrMemberBook/reports.yml`.
+
+
+## Rebrand Cleanup v1.8.1
+
+All public-facing branding now uses **CdrMemberBook**. Default permission nodes use `cdrmemberbook.*`. Legacy `moonsignmenu.*` aliases remain only for backward compatibility with existing permission setups.

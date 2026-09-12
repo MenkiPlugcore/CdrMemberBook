@@ -23,7 +23,7 @@ public final class MenuConfigService {
         if (section == null) return null;
 
         String title = section.getString("title", normalized.equals("main")
-                ? "MOONSIGN • Menu Member"
+                ? "CdrMemberBook • Menu Member"
                 : normalized);
         String content = section.getString("content", "");
         String backMenu = normalizeMenuId(section.getString("back-menu", "main"));

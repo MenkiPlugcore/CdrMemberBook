@@ -51,7 +51,7 @@ public final class BedrockFormService {
     private void showTutorialWelcome(Player player, Runnable onComplete) {
         String base = "tutorial.welcome.";
         SimpleForm.Builder builder = SimpleForm.builder()
-                .title(plugin.formatMenuText(plugin.getConfig().getString(base + "title", "&d&lMOONSIGN"), player))
+                .title(plugin.formatMenuText(plugin.getConfig().getString(base + "title", "&d&lCdrMemberBook"), player))
                 .content(plugin.formatMenuText(plugin.getConfig().getString(base + "content",
                         "&fSelamat datang! Member Book adalah pusat menu pribadi kamu."), player));
         addButton(builder, plugin.getConfig().getString(base + "button", "Lanjut"), "player", "textures/items/book_written");

@@ -220,7 +220,7 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
             getConfig().set("integrations.report.cooldown-seconds", 60L);
             getConfig().set("integrations.report.min-reason-length", 3);
             getConfig().set("integrations.report.max-reason-length", 200);
-            getConfig().set("integrations.report.staff-permission", "moonsignmenu.staff.report");
+            getConfig().set("integrations.report.staff-permission", "cdrmemberbook.staff.report");
             getConfig().set("integrations.report.console-command", "");
             migrateSpecialButton("report", "report", "report", "report");
         }
@@ -277,7 +277,7 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
         }
     }
 
-    public void reloadMoonSignConfig() {
+    public void reloadCdrMemberBookConfig() {
         reloadConfig();
         if (memberBookService != null) {
             memberBookService.validateConfiguration();
@@ -381,7 +381,7 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
     }
 
     public void message(Player player, String key, String... replacements) {
-        String prefix = getConfig().getString("prefix", "&8[&dMOONSIGN&8] &r");
+        String prefix = getConfig().getString("prefix", "&8[&dCdrMemberBook&8] &r");
         String raw = getConfig().getString("messages." + key, "&cMissing message: " + key);
         if (raw == null) raw = "";
         for (int i = 0; i + 1 < replacements.length; i += 2) {

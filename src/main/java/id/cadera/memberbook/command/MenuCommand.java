@@ -23,12 +23,12 @@ public final class MenuCommand implements CommandExecutor, TabCompleter {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command,
                              @NotNull String label, @NotNull String[] args) {
         if (args.length > 0 && args[0].equalsIgnoreCase("reload")) {
-            if (!sender.hasPermission("moonsignmenu.admin.reload")) {
+            if (!sender.hasPermission("cdrmemberbook.admin.reload")) {
                 if (sender instanceof Player player) plugin.message(player, "no-permission");
                 else sender.sendMessage("You do not have permission.");
                 return true;
             }
-            plugin.reloadMoonSignConfig();
+            plugin.reloadCdrMemberBookConfig();
             if (sender instanceof Player player) plugin.message(player, "config-reloaded");
             else sender.sendMessage(Colors.legacy("&aCdrMemberBook config reloaded."));
             return true;
@@ -45,7 +45,7 @@ public final class MenuCommand implements CommandExecutor, TabCompleter {
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command,
                                                  @NotNull String alias, @NotNull String[] args) {
-        if (args.length == 1 && sender.hasPermission("moonsignmenu.admin.reload")) {
+        if (args.length == 1 && sender.hasPermission("cdrmemberbook.admin.reload")) {
             if ("reload".startsWith(args[0].toLowerCase())) return List.of("reload");
         }
         return List.of();

@@ -412,7 +412,7 @@ public final class MemberBookService implements Listener {
         if (meta == null) return;
 
         String configuredName = plugin.getConfig().getString(
-                "member-book.name", "&d&lMOONSIGN &fMember Book");
+                "member-book.name", "&d&lCdrMemberBook &fMember Book");
         meta.setDisplayName(Colors.legacy(renderDynamicText(player, configuredName)));
 
         List<String> lore = new ArrayList<>();

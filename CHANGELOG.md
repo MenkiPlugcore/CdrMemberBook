@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.8.1 - Rebrand Cleanup
+
+- Replaced public-facing server-specific branding with CdrMemberBook.
+- Changed default permission namespace to `cdrmemberbook.*`.
+- Kept legacy permission aliases for backward compatibility.
+- Updated default prefix, Member Book name/lore, tutorial title, menu title and item-model namespace example.
+
 ## 1.8.0 - Smart Menu Conditions & Native Report
 
 - Menu buttons can auto-hide when their command/dependency is unavailable.
@@ -25,9 +32,9 @@
 
 ## Repository migration
 
-- Project dipisahkan dari `MenkiPlugcore/plugin/plugins/MoonSignMenu` menjadi repository standalone `MenkiPlugcore/CdrMemberBook`.
+- Project dipisahkan dari `MenkiPlugcore/plugin/plugins/CdrMemberBookMenu` menjadi repository standalone `MenkiPlugcore/CdrMemberBook`.
 - Plugin identity, Maven artifact, Java main class, dan Java package diganti menjadi CdrMemberBook.
-- Permission prefix lama `moonsignmenu.*` tetap dipertahankan sementara untuk kompatibilitas server yang sudah berjalan.
+- Permission prefix lama `cdrmemberbook.*` tetap dipertahankan sementara untuk kompatibilitas server yang sudah berjalan.
 
 ## 1.6.0 — Book Modes
 
@@ -99,7 +106,7 @@
 ## 1.4.1 — Book Customization
 
 - Added configurable `custom-model-data` for legacy/custom resource-pack item models.
-- Added Minecraft 1.21.4+ `item-model` support using namespaced item model keys such as `moonsign:member_book`.
+- Added Minecraft 1.21.4+ `item-model` support using namespaced item model keys such as `cdrmemberbook:member_book`.
 - Added tri-state `enchant-glint`: `true`, `false`, or `default`.
 - Added optional `hide-tooltip`, `hide-attributes`, and `hide-additional-tooltip` controls.
 - Added arbitrary Bukkit `item-flags` list support for advanced item presentation.
@@ -123,7 +130,7 @@
 - Added admin command `/cdrmemberbook give <player>` to ensure an eligible player owns a Member Book.
 - Added admin command `/cdrmemberbook remove <player>` to remove visible copies and suppress auto-recovery until relog or `give/fix`.
 - Added admin command `/cdrmemberbook fix <player>` to clean duplicates, recover visible external copies, and restore one valid book.
-- Added permission `moonsignmenu.admin.memberbook` (default: OP).
+- Added permission `cdrmemberbook.admin.memberbook` (default: OP).
 - Added `member-book.recovery.enabled`, `interval-ticks`, `recover-on-world-change`, `recover-from-open-container`, and `remove-duplicates` settings.
 - `/menu reload` now restarts the Member Book recovery task so recovery config changes apply without a server restart.
 - Config migration v4 -> v5 automatically enables the new recovery defaults.
@@ -183,7 +190,7 @@
 - Removed emoji dependency from menu labels.
 - Added Back navigation to the built-in teleport menu flow on Bedrock and Java.
 - Reworked Bedrock teleport selection into icon-based SimpleForm pages so navigation stays consistent.
-- Added automatic `MOONSIGN Member Book` item.
+- Added automatic `CdrMemberBook Member Book` item.
 - Right-clicking Member Book opens the member menu without typing `/menu`.
 - Member Book is restored when missing on join/respawn and can be configured to prevent dropping.
 - Added configurable Bedrock icon paths and Member Book settings.
