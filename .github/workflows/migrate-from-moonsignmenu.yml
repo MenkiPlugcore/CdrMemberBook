@@ -25,6 +25,13 @@ jobs:
           ref: main
           path: source
 
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
       - name: Copy and rename plugin
         shell: bash
         run: |
