@@ -715,8 +715,9 @@ public final class MemberBookService implements Listener {
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) return;
-        if (!isEligibleForBook(player) || !preventExternalStorage()) return;
+        if (!isEligibleForBook(player)) return;
 
+        boolean externalProtection = preventExternalStorage();
         boolean cursorBook = isMemberBook(event.getCursor());
         boolean currentBook = isMemberBook(event.getCurrentItem());
         boolean clickedOwnInventory = event.getClickedInventory() == player.getInventory();
@@ -732,6 +733,11 @@ public final class MemberBookService implements Listener {
                 scheduleRepair(player);
                 return;
             }
+        }
+
+        if (!externalProtection) {
+            if (touchedBook) scheduleRepair(player);
+            return;
         }
 
         if (cursorBook && clickedForeignInventory) {
