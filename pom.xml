@@ -6,9 +6,9 @@
 
     <groupId>id.cadera</groupId>
     <artifactId>CdrMemberBook</artifactId>
-    <version>1.8.1</version>
+    <version>1.8.2</version>
     <name>CdrMemberBook</name>
-    <description>Config-driven Bedrock/Java member menu with native TP, homes, pay and trade flows for MOONSIGN.</description>
+    <description>Config-driven Bedrock/Java member menu with native TP, homes, pay and trade flows for CdrMemberBook.</description>
 
     <properties>
         <maven.compiler.release>21</maven.compiler.release>

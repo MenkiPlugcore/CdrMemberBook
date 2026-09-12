@@ -1,4 +1,4 @@
-# CdrMemberBook v1.8.1
+# CdrMemberBook v1.8.2
 
 Standalone Paper plugin by **CADERA** untuk member menu Minecraft Java + Bedrock. Project ini dipisahkan dari monorepo `MenkiPlugcore/plugin` agar release, maintenance, issue, dan update berikutnya dapat dikelola langsung dari repository ini.
 
@@ -28,7 +28,7 @@ Standalone Paper plugin by **CADERA** untuk member menu Minecraft Java + Bedrock
 - Member Book tetap tidak dapat dibuang jika `prevent-drop: true`.
 - Safety recovery otomatis memulihkan buku yang hilang dan membersihkan duplikat.
 
-## Book Modes v1.8.1
+## Book Modes v1.8.2
 
 Behavior Member Book sekarang dapat dipilih melalui `member-book.mode` tanpa compile ulang:
 
@@ -243,21 +243,26 @@ Source awal project ini berasal dari `plugins/CdrMemberBookMenu` pada repository
 Saat upgrade dari config v4 ke v5, plugin otomatis menambahkan dan mengaktifkan default recovery `v1.4.0` tanpa perlu menghapus `config.yml` lama.
 
 
-## Book Modes Stability v1.8.1
+## Book Modes Stability v1.8.2
 
 Use `/cdrmemberbook status <player>` to inspect active mode, visible copies, reserved slot, recovery suppression, external/drop protection and dynamic refresh state. Invalid Book Mode config values safely fall back to `MOVABLE` and produce a startup/reload warning.
 
 
-## First Join Tutorial v1.8.1
+## First Join Tutorial v1.8.2
 
 New Bedrock players receive a native three-step tutorial after join. Completion is persisted in `plugins/CdrMemberBook/tutorial-data.yml`. Existing players are skipped by default (`tutorial.show-to-existing-unseen: false`). Admins can test/reset with `/cdrmemberbook tutorialshow <player>` and `/cdrmemberbook tutorialreset <player>`.
 
 
-## Smart Menu Conditions v1.8.1
+## Smart Menu Conditions v1.8.2
 
 Buttons are hidden automatically when their backing command or integration is unavailable. Command buttons auto-detect the root command, and optional `requires-plugins`, `requires-command`, and `auto-detect-command` fields are supported per button. Bedrock `type: report` uses CdrMemberBook's native report flow and stores reports in `plugins/CdrMemberBook/reports.yml`.
 
 
-## Rebrand Cleanup v1.8.1
+## Rebrand Cleanup v1.8.2
 
-All public-facing branding now uses **CdrMemberBook**. Default permission nodes use `cdrmemberbook.*`. Legacy `moonsignmenu.*` aliases remain only for backward compatibility with existing permission setups.
+All public-facing branding now uses **CdrMemberBook**. Default permission nodes use `cdrmemberbook.*`. Legacy `cdrmemberbook.*` aliases remain only for backward compatibility with existing permission setups.
+
+
+## Full CdrMemberBook Branding v1.8.2
+
+CdrMemberBook is now fully server-agnostic. Public UI, default config, permission nodes, item/model namespace examples, tutorial, report system and documentation use only the **CdrMemberBook** identity. Official permissions use `cdrmemberbook.*`.

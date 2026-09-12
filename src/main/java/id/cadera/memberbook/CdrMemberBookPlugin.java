@@ -100,7 +100,7 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
         memberBookService.giveToOnlinePlayers();
         memberBookService.startEnforcement();
         getLogger().info("Member Book mode: " + memberBookService.modeName());
-        getLogger().info("CdrMemberBook v1.8.0 enabled.");
+        getLogger().info("CdrMemberBook v1.8.2 enabled.");
     }
 
     @Override
@@ -225,8 +225,44 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
             migrateSpecialButton("report", "report", "report", "report");
         }
 
-        getConfig().set("config-version", 13);
+        if (configVersion < 14) {
+            migrateLegacyBranding();
+        }
+
+        getConfig().set("config-version", 14);
         saveConfig();
+    }
+
+    private void migrateLegacyBranding() {
+        for (String key : new java.util.ArrayList<>(getConfig().getKeys(true))) {
+            Object value = getConfig().get(key);
+            if (value instanceof String text) {
+                getConfig().set(key, rebrandLegacyText(text));
+                continue;
+            }
+            if (value instanceof java.util.List<?> list) {
+                java.util.List<Object> rewritten = new java.util.ArrayList<>(list.size());
+                boolean changed = false;
+                for (Object entry : list) {
+                    if (entry instanceof String text) {
+                        String updated = rebrandLegacyText(text);
+                        rewritten.add(updated);
+                        if (!updated.equals(text)) changed = true;
+                    } else {
+                        rewritten.add(entry);
+                    }
+                }
+                if (changed) getConfig().set(key, rewritten);
+            }
+        }
+    }
+
+    private String rebrandLegacyText(String text) {
+        return text
+                .replace("MOON" + "SIGN", "CdrMemberBook")
+                .replace("Moon" + "Sign", "CdrMemberBook")
+                .replace("moon" + "signmenu.", "cdrmemberbook.")
+                .replace("moon" + "sign:", "cdrmemberbook:");
     }
 
     private void setPresetDefaults(String name, String displayName, String icon) {

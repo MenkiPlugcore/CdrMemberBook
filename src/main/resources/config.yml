@@ -1,5 +1,5 @@
-# CdrMemberBook v1.8.1
-config-version: 13
+# CdrMemberBook v1.8.2
+config-version: 14
 prefix: '&8[&dCdrMemberBook&8] &r'
 
 teleport:

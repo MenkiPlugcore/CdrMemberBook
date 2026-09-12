@@ -1,10 +1,16 @@
 # Changelog
 
+## 1.8.2 - Full CdrMemberBook Rebrand
+
+- Removed remaining server-specific branding and legacy permission aliases from the current plugin tree.
+- Official permission namespace is now only `cdrmemberbook.*`.
+- Added config migration v14 to rewrite old branding values in existing server configs.
+- Updated startup version and public documentation for the standalone plugin identity.
+
 ## 1.8.1 - Rebrand Cleanup
 
 - Replaced public-facing server-specific branding with CdrMemberBook.
 - Changed default permission namespace to `cdrmemberbook.*`.
-- Kept legacy permission aliases for backward compatibility.
 - Updated default prefix, Member Book name/lore, tutorial title, menu title and item-model namespace example.
 
 ## 1.8.0 - Smart Menu Conditions & Native Report
