@@ -1,5 +1,5 @@
-# CdrMemberBook v1.3.2
-config-version: 4
+# CdrMemberBook v1.4.0
+config-version: 5
 prefix: '&8[&dMOONSIGN&8] &r'
 
 teleport:
@@ -28,7 +28,7 @@ bedrock-icons:
   trade-deny: textures/items/barrier
 
 # Member Book automatically opens the member menu on right click.
-# Default v1.3.2: buku bebas dipindahkan di inventory player sendiri,
+# Default v1.4.0: buku bebas dipindahkan di inventory player sendiri,
 # tetapi tidak bisa disimpan ke chest, ender chest, PlayerVaults, shulker,
 # plugin GUI, atau inventory lain di luar inventory player.
 member-book:
@@ -37,13 +37,28 @@ member-book:
   give-on-join: true
   give-delay-ticks: 10
   permanent-hotbar: false
-  # Legacy compatibility option. v1.3.2 tidak lagi mengunci perpindahan internal.
+  # Legacy compatibility option. Mode default v1.4.0 tidak mengunci perpindahan internal.
   prevent-move: false
   prevent-external-storage: true
+  # Dipakai oleh mode legacy permanent-hotbar.
   enforce-interval-ticks: 20
   # Slot awal saat buku pertama kali diberikan jika slot ini kosong.
   hotbar-slot: 8
   prevent-drop: true
+
+  # Safety & Recovery v1.4.0
+  recovery:
+    # Memulihkan buku yang hilang karena /clear, plugin lain, atau bug inventory.
+    enabled: true
+    # 100 ticks = 5 detik. Dibuat ringan dan tidak berjalan setiap tick.
+    interval-ticks: 100
+    # Cek ulang setelah player pindah world/server lifecycle.
+    recover-on-world-change: true
+    # Jika buku lolos ke container/GUI yang sedang dibuka, tarik kembali ke inventory player.
+    recover-from-open-container: true
+    # Bersihkan copy ganda di inventory/cursor player.
+    remove-duplicates: true
+
   material: BOOK
   name: '&d&lMOONSIGN &fMember Book'
   lore:
@@ -320,7 +335,7 @@ messages:
   config-reloaded: '&aConfig CdrMemberBook berhasil direload.'
   member-book-cannot-drop: '&eMember Book tidak dapat dibuang.'
   member-book-external-storage-blocked: '&eMember Book hanya boleh disimpan di inventory kamu sendiri.'
-  member-book-inventory-full: '&eInventory penuh. Kosongkan satu slot agar Member Book bisa diberikan.'
+  member-book-inventory-full: '&eInventory penuh. Kosongkan satu slot agar Member Book bisa diberikan/dipulihkan.'
   home-integration-unavailable: '&cHome Manager membutuhkan EssentialsX yang aktif.'
   home-limit-reached: '&eSlot home penuh: &f%used%/%max%&e.'
   invalid-home-name: '&cNama home hanya boleh huruf, angka, _ atau - (maks 32 karakter).'
