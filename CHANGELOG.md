@@ -6,6 +6,25 @@
 - Plugin identity, Maven artifact, Java main class, dan Java package diganti menjadi CdrMemberBook.
 - Permission prefix lama `moonsignmenu.*` tetap dipertahankan sementara untuk kompatibilitas server yang sudah berjalan.
 
+## 1.4.0 — Member Book Safety & Recovery
+
+- Added lightweight periodic recovery for eligible Bedrock/Floodgate players; default interval is 100 ticks (5 seconds).
+- Member Book is restored if it disappears because of `/clear`, another plugin, or an inventory desync/bug.
+- Recovery checks player inventory, cursor state, and the currently open external inventory before creating a new copy, preventing cursor-related duplication.
+- Added duplicate cleanup for Member Books found in player inventory/cursor.
+- If a marked Member Book somehow reaches an open chest, ender chest, PlayerVaults/PV, shulker, or plugin inventory, it is recovered back to the player when possible.
+- Added recovery checks after join, respawn, world change, inventory open/close, relevant click/drag operations, and plugin config reload.
+- Added protection against hopper/container transfer (`InventoryMoveItemEvent`), hopper pickup, dispenser use, and illicit dropped Member Book pickup.
+- Member Book remains Bedrock-only by default; Java players do not receive it and stale Java copies are cleaned from their own inventory/cursor.
+- Added admin command `/cdrmemberbook give <player>` to ensure an eligible player owns a Member Book.
+- Added admin command `/cdrmemberbook remove <player>` to remove visible copies and suppress auto-recovery until relog or `give/fix`.
+- Added admin command `/cdrmemberbook fix <player>` to clean duplicates, recover visible external copies, and restore one valid book.
+- Added permission `moonsignmenu.admin.memberbook` (default: OP).
+- Added `member-book.recovery.enabled`, `interval-ticks`, `recover-on-world-change`, `recover-from-open-container`, and `remove-duplicates` settings.
+- `/menu reload` now restarts the Member Book recovery task so recovery config changes apply without a server restart.
+- Config migration v4 -> v5 automatically enables the new recovery defaults.
+- Version bumped to `1.4.0`.
+
 ## 1.3.2
 
 - Member Book sekarang bebas dipindah-pindah di inventory dan hotbar player sendiri.
