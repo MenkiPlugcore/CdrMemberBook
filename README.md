@@ -1,4 +1,4 @@
-# CdrMemberBook v1.3.2
+# CdrMemberBook v1.4.0
 
 Standalone Paper plugin by **CADERA** untuk member menu Minecraft Java + Bedrock. Project ini dipisahkan dari monorepo `MenkiPlugcore/plugin` agar release, maintenance, issue, dan update berikutnya dapat dikelola langsung dari repository ini.
 
@@ -21,15 +21,16 @@ Standalone Paper plugin by **CADERA** untuk member menu Minecraft Java + Bedrock
 - Tambah/hapus/edit/reorder tombol tanpa compile ulang.
 - Button types: `command`, `teleport`, `homes`, `pay`, `trade`, `submenu`, `close`.
 - `/menu reload` untuk menerapkan perubahan config tanpa restart.
-- Member Book Bedrock-only dapat diatur lewat `config.yml`.
-- Member Book bebas dipindah di inventory/hotbar player sendiri.
+- Member Book Bedrock-only secara default.
+- Member Book bebas dipindah di inventory/hotbar/offhand player sendiri.
 - Member Book tidak dapat dimasukkan ke chest, ender chest, shulker, PlayerVaults/PV, plugin GUI, atau inventory eksternal lain.
-- Shift-click, drag, hotbar-number swap, dan offhand swap ke inventory eksternal ikut diproteksi.
+- Shift-click, drag, hotbar-number swap, offhand swap, hopper/container transfer, hopper pickup, dan dispenser ikut diproteksi.
 - Member Book tetap tidak dapat dibuang jika `prevent-drop: true`.
+- Safety recovery otomatis memulihkan buku yang hilang dan membersihkan duplikat.
 
-## Member Book Storage Protection
+## Member Book Safety & Recovery
 
-Default v1.3.2 menggunakan mode movable:
+Default v1.4.0 menggunakan mode movable + recovery ringan:
 
 ```yaml
 member-book:
@@ -41,9 +42,32 @@ member-book:
   prevent-external-storage: true
   hotbar-slot: 8
   prevent-drop: true
+
+  recovery:
+    enabled: true
+    interval-ticks: 100
+    recover-on-world-change: true
+    recover-from-open-container: true
+    remove-duplicates: true
 ```
 
 `hotbar-slot` hanya menjadi slot awal ketika buku pertama kali diberikan. Setelah itu player bebas memindahkan buku ke slot inventory miliknya sendiri.
+
+Recovery berjalan tiap 100 ticks (5 detik) secara default. Sebelum membuat buku baru, CdrMemberBook memeriksa inventory, cursor, dan container yang sedang dibuka sehingga item yang sedang dipegang mouse tidak dianggap hilang dan tidak menghasilkan duplikasi.
+
+Jika Member Book hilang karena `/clear`, plugin lain, desync, atau bug inventory, plugin akan membuat/memulihkan satu copy untuk player Bedrock yang eligible. Jika copy bertanda Member Book lolos ke container yang sedang dibuka, plugin mencoba menariknya kembali ke inventory player.
+
+Java player tetap tidak menerima Member Book saat `bedrock-only: true`. Java tetap bisa menggunakan `/menu` dan Java inventory GUI fallback.
+
+## Admin Recovery Commands
+
+Permission: `moonsignmenu.admin.memberbook` (default OP).
+
+| Command | Fungsi |
+|---|---|
+| `/cdrmemberbook give <player>` | Pastikan player Bedrock memiliki satu Member Book |
+| `/cdrmemberbook remove <player>` | Hapus copy yang terlihat dan tahan auto-recovery sampai relog atau `give/fix` |
+| `/cdrmemberbook fix <player>` | Bersihkan duplikat, recover copy eksternal yang terlihat, lalu pastikan satu buku valid |
 
 ## Bedrock Home Manager
 
@@ -87,7 +111,7 @@ integrations:
 | Command | Fungsi |
 |---|---|
 | `/menu` | Buka Menu Member |
-| `/menu reload` | Reload `config.yml` tanpa restart |
+| `/menu reload` | Reload `config.yml` dan restart recovery task tanpa restart server |
 | `/tpa <player>` | Minta teleport ke player |
 | `/tpahere <player>` | Minta player teleport ke kamu |
 | `/tpaccept` | Terima request |
@@ -103,11 +127,11 @@ mvn clean package
 Output:
 
 ```text
-target/CdrMemberBook-1.3.2.jar
+target/CdrMemberBook-1.4.0.jar
 ```
 
 ## Migration
 
 Source awal project ini berasal dari `plugins/MoonSignMenu` pada repository `MenkiPlugcore/plugin`. Mulai sekarang pengembangan CdrMemberBook dilakukan di repository standalone ini.
 
-Saat upgrade dari config v3 ke v4, plugin otomatis mengubah Member Book ke mode movable dan mengaktifkan `prevent-external-storage`.
+Saat upgrade dari config v4 ke v5, plugin otomatis menambahkan dan mengaktifkan default recovery `v1.4.0` tanpa perlu menghapus `config.yml` lama.
