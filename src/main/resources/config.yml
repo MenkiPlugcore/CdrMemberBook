@@ -1,5 +1,5 @@
-# CdrMemberBook v1.5.1
-config-version: 8
+# CdrMemberBook v1.5.2
+config-version: 9
 prefix: '&8[&dMOONSIGN&8] &r'
 
 teleport:
@@ -23,12 +23,13 @@ bedrock-icons:
   home: textures/items/bed_red
   home-add: textures/items/bed_red
   delete: textures/items/barrier
+  refresh: textures/items/compass_item
   trade-send: textures/items/emerald
   trade-accept: textures/items/slimeball
   trade-deny: textures/items/barrier
 
 # Member Book automatically opens the member menu on right click.
-# Default v1.5.1: buku bebas dipindahkan di inventory player sendiri,
+# Default v1.5.2: buku bebas dipindahkan di inventory player sendiri,
 # tetapi tidak bisa disimpan ke chest, ender chest, PlayerVaults, shulker,
 # plugin GUI, atau inventory lain di luar inventory player.
 member-book:
@@ -37,7 +38,7 @@ member-book:
   give-on-join: true
   give-delay-ticks: 10
   permanent-hotbar: false
-  # Legacy compatibility option. Mode default v1.5.1 tidak mengunci perpindahan internal.
+  # Legacy compatibility option. Mode default v1.5.2 tidak mengunci perpindahan internal.
   prevent-move: false
   prevent-external-storage: true
   # Dipakai oleh mode legacy permanent-hotbar.
@@ -45,6 +46,8 @@ member-book:
   # Slot awal saat buku pertama kali diberikan jika slot ini kosong.
   hotbar-slot: 8
   prevent-drop: true
+  # Anti double-open form. 20 ticks = 1 detik; 0 = nonaktif.
+  open-cooldown-ticks: 20
 
   # Safety & Recovery v1.4.0
   recovery:
@@ -113,6 +116,10 @@ integrations:
     - shop
     # Tetap sediakan opsi input nama sendiri selain tombol preset.
     allow-custom-name: true
+    # Urutkan daftar home aktual milik player secara alfabetis.
+    sort-alphabetically: true
+    # Tambahkan tombol Refresh Home di Home Manager.
+    show-refresh-button: true
 
   pay:
     # %target% = selected online player, %amount% = manually entered nominal.
@@ -379,4 +386,7 @@ messages:
   home-integration-unavailable: '&cHome Manager membutuhkan EssentialsX yang aktif.'
   home-limit-reached: '&eSlot home penuh: &f%used%/%max%&e.'
   invalid-home-name: '&cNama home hanya boleh huruf, angka, _ atau - (maks 32 karakter).'
+  home-list-refreshed: '&aDaftar home diperbarui.'
+  home-set-success: '&aHome &f%home% &aberhasil disimpan/diperbarui.'
+  home-delete-success: '&aHome &f%home% &aberhasil dihapus.'
   invalid-pay-amount: '&cNominal tidak valid. Contoh: 10000 atau 10.000.'

@@ -48,6 +48,7 @@ public final class MemberBookService implements Listener {
     private final CdrMemberBookPlugin plugin;
     private final NamespacedKey bookKey;
     private final Set<UUID> recoverySuppressed = new HashSet<>();
+    private final Set<UUID> menuOpenCooldown = new HashSet<>();
     private BukkitTask enforcementTask;
     private BukkitTask dynamicRefreshTask;
 
@@ -608,13 +609,20 @@ public final class MemberBookService implements Listener {
 
     @EventHandler
     public void onInteract(PlayerInteractEvent event) {
-        if (!isEligibleForBook(event.getPlayer())) return;
+        Player player = event.getPlayer();
+        if (!isEligibleForBook(player)) return;
         Action action = event.getAction();
         if (action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK) return;
         if (!isMemberBook(event.getItem())) return;
 
         event.setCancelled(true);
-        plugin.openMenu(event.getPlayer());
+        UUID uuid = player.getUniqueId();
+        long cooldownTicks = Math.max(0L, plugin.getConfig().getLong("member-book.open-cooldown-ticks", 20L));
+        if (cooldownTicks > 0L) {
+            if (!menuOpenCooldown.add(uuid)) return;
+            Bukkit.getScheduler().runTaskLater(plugin, () -> menuOpenCooldown.remove(uuid), cooldownTicks);
+        }
+        plugin.openMenu(player);
     }
 
     @EventHandler
@@ -761,6 +769,7 @@ public final class MemberBookService implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
+        menuOpenCooldown.remove(player.getUniqueId());
         if (!isMemberBook(player.getItemOnCursor())) return;
 
         if (hasInventoryBook(player)) {

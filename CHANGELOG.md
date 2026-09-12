@@ -6,6 +6,19 @@
 - Plugin identity, Maven artifact, Java main class, dan Java package diganti menjadi CdrMemberBook.
 - Permission prefix lama `moonsignmenu.*` tetap dipertahankan sementara untuk kompatibilitas server yang sudah berjalan.
 
+## 1.5.2 — Bedrock Menu QoL
+
+- Added configurable Member Book anti-double-open cooldown; default is 20 ticks (1 second) to prevent duplicate Bedrock forms from rapid/right-hand-offhand interactions.
+- Home Manager now includes an optional `Refresh Home` button and displays the current home count directly on Teleport/Delete buttons.
+- Empty home states are explicit (`BELUM ADA`) instead of looking like a broken picker.
+- EssentialsX home lists are sorted alphabetically by default for Teleport and Delete pickers; sorting can be disabled in config.
+- Added success feedback after Set/Overwrite Home and Delete Home actions.
+- Existing menu permission filtering remains active through `menu.hide-buttons-without-permission: true`; no duplicate permission layer was introduced.
+- Added `member-book.open-cooldown-ticks`, `integrations.essentials-home.sort-alphabetically`, and `show-refresh-button`.
+- Added configurable `home-list-refreshed`, `home-set-success`, and `home-delete-success` messages.
+- Config migration v8 -> v9 adds the new QoL defaults without changing existing home presets.
+- Version bumped to `1.5.2`.
+
 ## 1.5.1 — Home Picker QoL
 
 - Reworked the Bedrock Home Manager into a fully click-first flow: `Teleport Home`, `Set Home`, `Hapus Home`, and `Kembali`.

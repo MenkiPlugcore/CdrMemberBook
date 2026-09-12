@@ -107,27 +107,47 @@ public final class BedrockFormService {
             return;
         }
 
-        List<String> names = homes.homes(player);
+        List<String> names = sortedHomes(homes.homes(player));
         int limit = homes.maxHomes(player);
         String limitText = limit < 0 ? "∞" : Integer.toString(limit);
+        boolean showRefresh = plugin.getConfig().getBoolean(
+                "integrations.essentials-home.show-refresh-button", true);
 
         SimpleForm.Builder builder = SimpleForm.builder()
                 .title("Home Manager")
-                .content("Home tersimpan: " + names.size() + "/" + limitText + "\nPilih menu home tanpa mengetik command.");
+                .content("Home tersimpan: " + names.size() + "/" + limitText
+                        + "\nPilih menu home tanpa mengetik command.");
 
-        addButton(builder, "Teleport Home", "home", "textures/items/ender_pearl");
+        addButton(builder, names.isEmpty() ? "Teleport Home (BELUM ADA)" : "Teleport Home (" + names.size() + ")",
+                "home", "textures/items/ender_pearl");
         addButton(builder, "Set Home", "home-add", "textures/items/bed_red");
-        addButton(builder, "Hapus Home", "delete", "textures/items/barrier");
+        addButton(builder, names.isEmpty() ? "Hapus Home (BELUM ADA)" : "Hapus Home (" + names.size() + ")",
+                "delete", "textures/items/barrier");
+        if (showRefresh) addButton(builder, "Refresh Home", "refresh", "textures/items/compass_item");
         addButton(builder, "Kembali", "back", "textures/items/arrow");
 
+        int refreshIndex = showRefresh ? 3 : -1;
+        int backIndex = showRefresh ? 4 : 3;
         send(player, builder.validResultHandler(response -> sync(() -> {
-            switch (response.clickedButtonId()) {
-                case 0 -> showTeleportHomePicker(player, returnMenuId, fallbackCommand);
-                case 1 -> showSetHomePicker(player, returnMenuId, fallbackCommand);
-                case 2 -> showDeleteHomePicker(player, returnMenuId, fallbackCommand);
-                case 3 -> showConfiguredMenu(player, returnMenuId);
-                default -> { }
+            int selected = response.clickedButtonId();
+            if (selected == 0) {
+                showTeleportHomePicker(player, returnMenuId, fallbackCommand);
+                return;
             }
+            if (selected == 1) {
+                showSetHomePicker(player, returnMenuId, fallbackCommand);
+                return;
+            }
+            if (selected == 2) {
+                showDeleteHomePicker(player, returnMenuId, fallbackCommand);
+                return;
+            }
+            if (selected == refreshIndex) {
+                plugin.message(player, "home-list-refreshed");
+                showHomesMenu(player, returnMenuId, fallbackCommand);
+                return;
+            }
+            if (selected == backIndex) showConfiguredMenu(player, returnMenuId);
         })).build());
     }
 
@@ -138,7 +158,7 @@ public final class BedrockFormService {
             return;
         }
 
-        List<String> names = homes.homes(player);
+        List<String> names = sortedHomes(homes.homes(player));
         SimpleForm.Builder builder = SimpleForm.builder()
                 .title("Teleport Home")
                 .content(names.isEmpty() ? "Kamu belum punya home." : "Pilih home tujuan.");
@@ -167,7 +187,7 @@ public final class BedrockFormService {
             return;
         }
 
-        List<String> existingHomes = homes.homes(player);
+        List<String> existingHomes = sortedHomes(homes.homes(player));
         int limit = homes.maxHomes(player);
         String limitText = limit < 0 ? "∞" : Integer.toString(limit);
         List<String> configured = plugin.getConfig().getStringList("integrations.essentials-home.presets");
@@ -248,7 +268,9 @@ public final class BedrockFormService {
         String command = plugin.getConfig().getString("integrations.essentials-home.set-command", "sethome %home%");
         plugin.dispatchPlayerTemplate(player, command, Map.of("%home%", name));
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (player.isOnline()) showSetHomePicker(player, returnMenuId, fallbackCommand);
+            if (!player.isOnline()) return;
+            plugin.message(player, "home-set-success", "%home%", name);
+            showSetHomePicker(player, returnMenuId, fallbackCommand);
         }, 2L);
     }
 
@@ -283,7 +305,7 @@ public final class BedrockFormService {
             return;
         }
 
-        List<String> names = homes.homes(player);
+        List<String> names = sortedHomes(homes.homes(player));
         SimpleForm.Builder builder = SimpleForm.builder()
                 .title("Hapus Home")
                 .content(names.isEmpty() ? "Kamu belum punya home." : "Pilih home yang ingin dihapus.");
@@ -313,7 +335,9 @@ public final class BedrockFormService {
                         String command = plugin.getConfig().getString("integrations.essentials-home.delete-command", "delhome %home%");
                         plugin.dispatchPlayerTemplate(player, command, Map.of("%home%", home));
                         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                            if (player.isOnline()) showDeleteHomePicker(player, returnMenuId, fallbackCommand);
+                            if (!player.isOnline()) return;
+                            plugin.message(player, "home-delete-success", "%home%", home);
+                            showDeleteHomePicker(player, returnMenuId, fallbackCommand);
                         }, 2L);
                     } else {
                         showDeleteHomePicker(player, returnMenuId, fallbackCommand);
@@ -321,6 +345,13 @@ public final class BedrockFormService {
                 }))
                 .build();
         send(player, form);
+    }
+
+    private List<String> sortedHomes(List<String> homes) {
+        if (!plugin.getConfig().getBoolean("integrations.essentials-home.sort-alphabetically", true)) {
+            return List.copyOf(homes);
+        }
+        return homes.stream().sorted(String.CASE_INSENSITIVE_ORDER).toList();
     }
 
     private boolean containsHome(List<String> homes, String name) {

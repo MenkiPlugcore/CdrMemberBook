@@ -1,4 +1,4 @@
-# CdrMemberBook v1.5.1
+# CdrMemberBook v1.5.2
 
 Standalone Paper plugin by **CADERA** untuk member menu Minecraft Java + Bedrock. Project ini dipisahkan dari monorepo `MenkiPlugcore/plugin` agar release, maintenance, issue, dan update berikutnya dapat dikelola langsung dari repository ini.
 
@@ -119,7 +119,9 @@ Permission: `moonsignmenu.admin.memberbook` (default OP).
 
 ## Bedrock Home Manager
 
-Gunakan `type: homes`. Mulai v1.5.1, Home Manager Bedrock memakai flow klik penuh: **Teleport Home**, **Set Home**, **Hapus Home**, lalu picker nama home. Player tidak perlu mengetik `/home` atau `/sethome`.
+Gunakan `type: homes`. CdrMemberBook membaca data home dan limit langsung dari EssentialsX. Flow Bedrock bersifat click-first: `Teleport Home`, `Set Home`, `Hapus Home`, dan `Refresh Home`. Daftar home aktual otomatis muncul sebagai tombol, diurutkan alfabetis secara default, dan tidak mengharuskan player mengetik `/home`.
+
+`v1.5.2` juga menambahkan anti-double-open Member Book default 20 ticks (1 detik), state `BELUM ADA` untuk player tanpa home, serta feedback sukses setelah set/overwrite dan delete home.
 
 ```yaml
 integrations:
@@ -192,7 +194,7 @@ mvn clean package
 Output:
 
 ```text
-target/CdrMemberBook-1.5.1.jar
+target/CdrMemberBook-1.5.2.jar
 ```
 
 ## Migration
