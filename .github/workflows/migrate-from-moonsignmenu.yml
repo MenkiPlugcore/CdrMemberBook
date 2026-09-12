@@ -1,0 +1,89 @@
+name: Migrate MoonSignMenu to CdrMemberBook
+
+on:
+  push:
+    paths:
+      - '.github/workflows/migrate-from-moonsignmenu.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout CdrMemberBook
+        uses: actions/checkout@v4
+        with:
+          path: target
+
+      - name: Checkout source monorepo
+        uses: actions/checkout@v4
+        with:
+          repository: MenkiPlugcore/plugin
+          ref: main
+          path: source
+
+      - name: Copy and rename plugin
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          rsync -a --exclude='README.md' source/plugins/MoonSignMenu/ target/
+          cp source/LICENSE target/LICENSE
+          printf '/target/\n' > target/.gitignore
+
+          mkdir -p target/src/main/java/id/cadera
+          mv target/src/main/java/store/moonsign/menu target/src/main/java/id/cadera/memberbook
+          rm -rf target/src/main/java/store
+          mv target/src/main/java/id/cadera/memberbook/MoonSignMenuPlugin.java \
+             target/src/main/java/id/cadera/memberbook/CdrMemberBookPlugin.java
+
+          find target/src/main/java/id/cadera/memberbook -type f -name '*.java' -print0 | \
+            xargs -0 sed -i \
+              -e 's/store\.moonsign\.menu/id.cadera.memberbook/g' \
+              -e 's/MoonSignMenuPlugin/CdrMemberBookPlugin/g' \
+              -e 's/MoonSignMenu/CdrMemberBook/g'
+
+          sed -i \
+            -e 's#<groupId>store.moonsign</groupId>#<groupId>id.cadera</groupId>#' \
+            -e 's/MoonSignMenu/CdrMemberBook/g' \
+            target/pom.xml
+
+          sed -i \
+            -e 's/store\.moonsign\.menu\.MoonSignMenuPlugin/id.cadera.memberbook.CdrMemberBookPlugin/g' \
+            -e 's/MoonSignMenu/CdrMemberBook/g' \
+            target/src/main/resources/plugin.yml
+
+          sed -i 's/MoonSignMenu/CdrMemberBook/g' target/src/main/resources/config.yml
+          sed -i 's/MoonSignMenu/CdrMemberBook/g' target/CHANGELOG.md
+
+          tmp="$(mktemp)"
+          {
+            printf '# Changelog\n\n'
+            printf '## Repository migration\n\n'
+            printf -- '- Project dipisahkan dari `MenkiPlugcore/plugin/plugins/MoonSignMenu` menjadi repository standalone `MenkiPlugcore/CdrMemberBook`.\n'
+            printf -- '- Plugin identity, Maven artifact, Java main class, dan Java package diganti menjadi CdrMemberBook.\n'
+            printf -- '- Permission prefix lama `moonsignmenu.*` tetap dipertahankan sementara untuk kompatibilitas server yang sudah berjalan.\n\n'
+            tail -n +2 target/CHANGELOG.md
+          } > "$tmp"
+          mv "$tmp" target/CHANGELOG.md
+
+      - name: Verify Maven build
+        working-directory: target
+        run: mvn -B -ntp clean package
+
+      - name: Commit migrated standalone project
+        working-directory: target
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add README.md CHANGELOG.md LICENSE .gitignore pom.xml src
+          if git diff --cached --quiet; then
+            echo 'No migration changes to commit.'
+            exit 0
+          fi
+          git commit -m 'refactor: migrate MoonSignMenu to standalone CdrMemberBook'
+          git push
