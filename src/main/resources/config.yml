@@ -1,5 +1,5 @@
-# CdrMemberBook v1.9.2
-config-version: 19
+# CdrMemberBook v1.9.3
+config-version: 20
 prefix: '&8[&dCdrMemberBook&8] &r'
 
 teleport:
@@ -223,6 +223,11 @@ integrations:
     staff-permission: 'cdrmemberbook.staff.report'
     # Optional hook setelah report tersimpan. Placeholder: %id%, %reporter%, %target%, %reason%.
     console-command: ''
+    # Native Bedrock staff Report Center. Java staff UI akan ditambahkan terpisah.
+    center:
+      enabled: true
+      page-size: 8
+      allow-delete: true
 
 # Fully config-driven member menu.
 # Button types:
@@ -231,6 +236,7 @@ integrations:
 #   homes    = native Bedrock EssentialsX Home Manager
 #   pay      = native Bedrock player picker + manual nominal input
 #   trade    = native Bedrock AxTrade send/accept/deny/toggle flow
+#   report-center = native Bedrock staff Report Center
 #   submenu  = open a submenu from menu.submenus
 #   close    = close the menu
 # Advanced actions v1.9.0: optional `actions:` list overrides legacy single action.
@@ -398,6 +404,20 @@ menu:
         java-material: WRITABLE_BOOK
         permission: ''
 
+      report-center:
+        enabled: true
+        name: '&cReport Center'
+        type: report-center
+        order: 115
+        icon: textures/items/book_written
+        java-material: KNOWLEDGE_BOOK
+        permission: 'cdrmemberbook.staff.report'
+        conditions:
+          platform: BEDROCK
+        lore:
+        - '&7Kelola laporan OPEN/RESOLVED.'
+        - '&7Khusus staff Bedrock.'
+
       barter:
         enabled: true
         name: Barter
@@ -504,6 +524,11 @@ messages:
   report-cooldown: '&eTunggu &f%seconds%s &esebelum membuat laporan lagi.'
   cannot-report-self: '&cKamu tidak bisa melaporkan diri sendiri.'
   report-failed: '&cLaporan tidak dapat dikirim. Coba lagi atau hubungi staff.'
+  report-not-found: '&cReport &f#%id% &ctidak ditemukan atau sudah dihapus.'
+  report-resolved: '&aReport &f#%id% &aberhasil ditandai RESOLVED.'
+  report-reopened: '&eReport &f#%id% &edibuka kembali sebagai OPEN.'
+  report-deleted: '&aReport &f#%id% &aberhasil dihapus.'
+  report-action-failed: '&cPerubahan report gagal disimpan. Cek console/storage lalu coba lagi.'
   config-reloaded: '&aConfig CdrMemberBook berhasil direload.'
   member-book-cannot-drop: '&eMember Book tidak dapat dibuang.'
   member-book-external-storage-blocked: '&eMember Book hanya boleh disimpan di inventory kamu sendiri.'

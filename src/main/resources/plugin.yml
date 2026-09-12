@@ -1,5 +1,5 @@
 name: CdrMemberBook
-version: '1.9.2'
+version: '1.9.3'
 main: id.cadera.memberbook.CdrMemberBookPlugin
 api-version: '1.21'
 author: CADERA

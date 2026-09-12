@@ -200,6 +200,7 @@ public final class JavaMenuService implements Listener {
                 plugin.executeMenuCommand(player, button);
             }
             case "teleport" -> showPlayerSelect(player, menu.id(), 0);
+            case "report-center" -> plugin.message(player, "feature-unavailable");
             case "submenu" -> {
                 if (button.submenu() == null || button.submenu().isBlank()) {
                     plugin.message(player, "menu-not-found", "%menu%", button.key());

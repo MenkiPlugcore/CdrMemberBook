@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.9.3 - Bedrock Staff Report Center
+
+- Added native Bedrock `Report Center` for staff permission `cdrmemberbook.staff.report`.
+- Added OPEN / RESOLVED / ALL filters with pagination and refresh.
+- Added report detail view with reporter, target, reason, timestamp, location and resolution metadata.
+- Added native Resolve, Reopen and Delete actions with confirmation forms.
+- Added `report-center` menu button type and default Bedrock-only staff button.
+- Kept Java Report Center hidden for a dedicated follow-up Java UI update.
+
+
 ## 1.9.2 - Production Hardening
 
 - Added guarded/cancellable menu action chains with anti-spam cooldown and safety caps.

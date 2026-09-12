@@ -1,4 +1,4 @@
-# CdrMemberBook v1.9.2
+# CdrMemberBook v1.9.3
 
 Standalone Paper plugin by **CADERA** untuk member menu Minecraft Java + Bedrock. Project ini dipisahkan dari monorepo `MenkiPlugcore/plugin` agar release, maintenance, issue, dan update berikutnya dapat dikelola langsung dari repository ini.
 
@@ -306,3 +306,7 @@ example:
 - Report hanya dianggap berhasil setelah `reports.yml` benar-benar tersimpan; mutation resolve/reopen/delete juga melaporkan kegagalan storage.
 - Reason report dibersihkan dari control character sebelum disimpan/log/hook.
 - `/cdrmemberbook health` menampilkan dependency, report count, config version, dan action safety limits.
+
+## Bedrock Staff Report Center v1.9.3
+
+Staff Bedrock dengan permission `cdrmemberbook.staff.report` mendapat tombol `Report Center` di Member Book. Center menyediakan filter OPEN/RESOLVED/ALL, pagination, detail laporan, Resolve, Reopen, Delete dengan konfirmasi, dan refresh tanpa command. Tombol ini sengaja disembunyikan dari Java sampai Java staff UI dibuat pada update terpisah.

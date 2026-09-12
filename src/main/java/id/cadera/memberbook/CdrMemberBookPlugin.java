@@ -104,7 +104,7 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
         memberBookService.giveToOnlinePlayers();
         memberBookService.startEnforcement();
         getLogger().info("Member Book mode: " + memberBookService.modeName());
-        getLogger().info("CdrMemberBook v1.9.2 enabled.");
+        getLogger().info("CdrMemberBook v1.9.3 enabled.");
     }
 
     @Override
@@ -260,7 +260,13 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
             getConfig().set("integrations.report.sanitize-control-characters", true);
         }
 
-        getConfig().set("config-version", 19);
+        if (configVersion < 20) {
+            getConfig().set("integrations.report.center.enabled", true);
+            getConfig().set("integrations.report.center.page-size", 8);
+            getConfig().set("integrations.report.center.allow-delete", true);
+        }
+
+        getConfig().set("config-version", 20);
         saveConfig();
     }
 

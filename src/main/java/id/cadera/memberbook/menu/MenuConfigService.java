@@ -14,7 +14,7 @@ import java.util.Set;
 import me.clip.placeholderapi.PlaceholderAPI;
 
 public final class MenuConfigService {
-    private static final Set<String> KNOWN_TYPES = Set.of("command", "teleport", "homes", "pay", "trade", "report", "submenu", "close");
+    private static final Set<String> KNOWN_TYPES = Set.of("command", "teleport", "homes", "pay", "trade", "report", "report-center", "submenu", "close");
     private static final Set<String> ACTION_TYPES = Set.of("command", "console-command", "message", "sound", "close", "open-menu", "delay");
     private static final Set<String> CONDITION_OPERATORS = Set.of("==", "=", "equals", "!=", "not_equals", "contains", "not_contains", "starts_with", "ends_with", ">", ">=", "<", "<=");
     private final CdrMemberBookPlugin plugin;
@@ -103,6 +103,15 @@ public final class MenuConfigService {
             case "pay" -> availableCommand(plugin.getConfig().getString("integrations.pay.command","pay %target% %amount%"));
             case "trade" -> !plugin.getServer().getPluginManager().isPluginEnabled("AxTrade") ? new Availability(false,"missing-plugin","AxTrade") : availableCommand(plugin.getConfig().getString("integrations.axtrade.send-command","axtrade %target%"));
             case "report" -> (plugin.reports()!=null && plugin.reports().enabled() && plugin.forms()!=null && plugin.forms().isBedrock(player)) ? new Availability(true,"ok","native-report") : availableCommand(button.command());
+            case "report-center" -> {
+                if (plugin.reports() == null || !plugin.reports().enabled())
+                    yield new Availability(false,"report-disabled","native report disabled");
+                if (!plugin.getConfig().getBoolean("integrations.report.center.enabled", true))
+                    yield new Availability(false,"report-center-disabled","center disabled");
+                if (plugin.forms() == null || !plugin.forms().isBedrock(player))
+                    yield new Availability(false,"bedrock-only","Report Center Bedrock only");
+                yield new Availability(true,"ok","native-report-center");
+            }
             case "command" -> button.command()==null || button.command().isBlank() ? new Availability(false,"empty-command","command kosong") : (!plugin.getConfig().getBoolean("menu.auto-detect-command-dependencies",true) || !button.autoDetectCommand() ? new Availability(true,"ok","auto-detect off") : availableCommand(button.command()));
             default -> new Availability(false,"invalid-type",button.type());
         };
