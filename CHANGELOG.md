@@ -6,6 +6,19 @@
 - Plugin identity, Maven artifact, Java main class, dan Java package diganti menjadi CdrMemberBook.
 - Permission prefix lama `moonsignmenu.*` tetap dipertahankan sementara untuk kompatibilitas server yang sudah berjalan.
 
+## 1.5.1 — Home Picker QoL
+
+- Reworked the Bedrock Home Manager into a fully click-first flow: `Teleport Home`, `Set Home`, `Hapus Home`, and `Kembali`.
+- `Teleport Home` now shows the player's actual EssentialsX home names as buttons and teleports immediately after selection; players never need to type `/home`.
+- `Set Home` now shows configurable preset home-name buttons; default presets are `rumah`, `base`, `farm`, `tambang`, and `shop`.
+- Existing preset homes are labeled as overwrite actions and require confirmation before the location is replaced.
+- Added optional `Nama Custom` input for servers that still want arbitrary home names without exposing commands.
+- `Hapus Home` now has its own home picker and delete confirmation flow.
+- Home limits and unlimited-home permissions continue to use EssentialsX directly.
+- Added `integrations.essentials-home.presets` and `allow-custom-name`.
+- Config migration v7 -> v8 automatically adds the Home Picker defaults.
+- Version bumped to `1.5.1`.
+
 ## 1.5.0 — Dynamic Member Book
 
 - Added optional PlaceholderAPI integration for dynamic Member Book name and lore.

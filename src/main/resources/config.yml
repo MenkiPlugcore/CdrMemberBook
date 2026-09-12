@@ -1,5 +1,5 @@
-# CdrMemberBook v1.5.0
-config-version: 7
+# CdrMemberBook v1.5.1
+config-version: 8
 prefix: '&8[&dMOONSIGN&8] &r'
 
 teleport:
@@ -28,7 +28,7 @@ bedrock-icons:
   trade-deny: textures/items/barrier
 
 # Member Book automatically opens the member menu on right click.
-# Default v1.5.0: buku bebas dipindahkan di inventory player sendiri,
+# Default v1.5.1: buku bebas dipindahkan di inventory player sendiri,
 # tetapi tidak bisa disimpan ke chest, ender chest, PlayerVaults, shulker,
 # plugin GUI, atau inventory lain di luar inventory player.
 member-book:
@@ -37,7 +37,7 @@ member-book:
   give-on-join: true
   give-delay-ticks: 10
   permanent-hotbar: false
-  # Legacy compatibility option. Mode default v1.5.0 tidak mengunci perpindahan internal.
+  # Legacy compatibility option. Mode default v1.5.1 tidak mengunci perpindahan internal.
   prevent-move: false
   prevent-external-storage: true
   # Dipakai oleh mode legacy permanent-hotbar.
@@ -104,6 +104,15 @@ integrations:
     set-command: 'sethome %home%'
     teleport-command: 'home %home%'
     delete-command: 'delhome %home%'
+    # Tombol preset untuk Bedrock Set Home. Bisa diubah bebas.
+    presets:
+    - rumah
+    - base
+    - farm
+    - tambang
+    - shop
+    # Tetap sediakan opsi input nama sendiri selain tombol preset.
+    allow-custom-name: true
 
   pay:
     # %target% = selected online player, %amount% = manually entered nominal.

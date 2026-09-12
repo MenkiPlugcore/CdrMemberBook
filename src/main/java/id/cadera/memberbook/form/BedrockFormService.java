@@ -113,34 +113,143 @@ public final class BedrockFormService {
 
         SimpleForm.Builder builder = SimpleForm.builder()
                 .title("Home Manager")
-                .content("Home tersimpan: " + names.size() + "/" + limitText + "\nPilih home untuk teleport atau hapus.");
+                .content("Home tersimpan: " + names.size() + "/" + limitText + "\nPilih menu home tanpa mengetik command.");
 
-        String addLabel = limit >= 0 && names.size() >= limit ? "Set Home Baru (PENUH)" : "Set Home Baru";
-        addButton(builder, addLabel, "home-add", "textures/items/bed_red");
-        for (String name : names) addButton(builder, name, "home", "textures/items/bed_red");
+        addButton(builder, "Teleport Home", "home", "textures/items/ender_pearl");
+        addButton(builder, "Set Home", "home-add", "textures/items/bed_red");
+        addButton(builder, "Hapus Home", "delete", "textures/items/barrier");
         addButton(builder, "Kembali", "back", "textures/items/arrow");
 
-        int backIndex = names.size() + 1;
         send(player, builder.validResultHandler(response -> sync(() -> {
-            int selected = response.clickedButtonId();
-            if (selected == 0) {
-                if (limit >= 0 && names.size() >= limit) {
-                    plugin.message(player, "home-limit-reached", "%used%", Integer.toString(names.size()), "%max%", limitText);
-                    showHomesMenu(player, returnMenuId, fallbackCommand);
-                } else {
-                    showNewHomeForm(player, returnMenuId, fallbackCommand);
-                }
-                return;
-            }
-            if (selected == backIndex) {
-                showConfiguredMenu(player, returnMenuId);
-                return;
-            }
-            int homeIndex = selected - 1;
-            if (homeIndex >= 0 && homeIndex < names.size()) {
-                showHomeActions(player, names.get(homeIndex), returnMenuId, fallbackCommand);
+            switch (response.clickedButtonId()) {
+                case 0 -> showTeleportHomePicker(player, returnMenuId, fallbackCommand);
+                case 1 -> showSetHomePicker(player, returnMenuId, fallbackCommand);
+                case 2 -> showDeleteHomePicker(player, returnMenuId, fallbackCommand);
+                case 3 -> showConfiguredMenu(player, returnMenuId);
+                default -> { }
             }
         })).build());
+    }
+
+    private void showTeleportHomePicker(Player player, String returnMenuId, String fallbackCommand) {
+        EssentialsHomeService homes = plugin.homes();
+        if (homes == null || !homes.available()) {
+            showHomesMenu(player, returnMenuId, fallbackCommand);
+            return;
+        }
+
+        List<String> names = homes.homes(player);
+        SimpleForm.Builder builder = SimpleForm.builder()
+                .title("Teleport Home")
+                .content(names.isEmpty() ? "Kamu belum punya home." : "Pilih home tujuan.");
+
+        for (String name : names) addButton(builder, name, "home", "textures/items/ender_pearl");
+        addButton(builder, "Kembali", "back", "textures/items/arrow");
+        int backIndex = names.size();
+
+        send(player, builder.validResultHandler(response -> sync(() -> {
+            int selected = response.clickedButtonId();
+            if (selected == backIndex) {
+                showHomesMenu(player, returnMenuId, fallbackCommand);
+                return;
+            }
+            if (selected < 0 || selected >= names.size()) return;
+            String home = names.get(selected);
+            String command = plugin.getConfig().getString("integrations.essentials-home.teleport-command", "home %home%");
+            plugin.dispatchPlayerTemplate(player, command, Map.of("%home%", home));
+        })).build());
+    }
+
+    private void showSetHomePicker(Player player, String returnMenuId, String fallbackCommand) {
+        EssentialsHomeService homes = plugin.homes();
+        if (homes == null || !homes.available()) {
+            showHomesMenu(player, returnMenuId, fallbackCommand);
+            return;
+        }
+
+        List<String> existingHomes = homes.homes(player);
+        int limit = homes.maxHomes(player);
+        String limitText = limit < 0 ? "∞" : Integer.toString(limit);
+        List<String> configured = plugin.getConfig().getStringList("integrations.essentials-home.presets");
+        List<String> presets = configured.stream()
+                .map(String::trim)
+                .filter(name -> HOME_NAME.matcher(name).matches())
+                .distinct()
+                .toList();
+        if (presets.isEmpty()) presets = List.of("rumah", "base", "farm", "tambang", "shop");
+
+        boolean allowCustom = plugin.getConfig().getBoolean("integrations.essentials-home.allow-custom-name", true);
+        SimpleForm.Builder builder = SimpleForm.builder()
+                .title("Set Home")
+                .content("Home tersimpan: " + existingHomes.size() + "/" + limitText
+                        + "\nPilih nama home. Home yang sudah ada akan ditimpa setelah konfirmasi.");
+
+        for (String preset : presets) {
+            boolean existing = containsHome(existingHomes, preset);
+            addButton(builder, existing ? "Timpa: " + preset : "Set: " + preset,
+                    "home-add", "textures/items/bed_red");
+        }
+        if (allowCustom) addButton(builder, "Nama Custom", "home-add", "textures/items/name_tag");
+        addButton(builder, "Kembali", "back", "textures/items/arrow");
+
+        int customIndex = allowCustom ? presets.size() : -1;
+        int backIndex = presets.size() + (allowCustom ? 1 : 0);
+        List<String> finalPresets = presets;
+        send(player, builder.validResultHandler(response -> sync(() -> {
+            int selected = response.clickedButtonId();
+            if (selected == backIndex) {
+                showHomesMenu(player, returnMenuId, fallbackCommand);
+                return;
+            }
+            if (allowCustom && selected == customIndex) {
+                showNewHomeForm(player, returnMenuId, fallbackCommand);
+                return;
+            }
+            if (selected < 0 || selected >= finalPresets.size()) return;
+            confirmOrSetHome(player, finalPresets.get(selected), returnMenuId, fallbackCommand);
+        })).build());
+    }
+
+    private void confirmOrSetHome(Player player, String name, String returnMenuId, String fallbackCommand) {
+        EssentialsHomeService homes = plugin.homes();
+        if (homes == null || !homes.available()) {
+            showHomesMenu(player, returnMenuId, fallbackCommand);
+            return;
+        }
+
+        List<String> names = homes.homes(player);
+        boolean existing = containsHome(names, name);
+        int limit = homes.maxHomes(player);
+        if (!existing && limit >= 0 && names.size() >= limit) {
+            plugin.message(player, "home-limit-reached", "%used%", Integer.toString(names.size()), "%max%", Integer.toString(limit));
+            showSetHomePicker(player, returnMenuId, fallbackCommand);
+            return;
+        }
+
+        if (!existing) {
+            performSetHome(player, name, returnMenuId, fallbackCommand);
+            return;
+        }
+
+        ModalForm form = ModalForm.builder()
+                .title("Timpa Home")
+                .content("Home '" + name + "' sudah ada. Timpa lokasinya dengan posisi kamu sekarang?")
+                .button1("TIMPA")
+                .button2("KEMBALI")
+                .validResultHandler(response -> sync(() -> {
+                    if (response.clickedFirst()) performSetHome(player, name, returnMenuId, fallbackCommand);
+                    else showSetHomePicker(player, returnMenuId, fallbackCommand);
+                }))
+                .build();
+        send(player, form);
+    }
+
+    private void performSetHome(Player player, String name, String returnMenuId, String fallbackCommand) {
+        String command = plugin.getConfig().getString("integrations.essentials-home.set-command", "sethome %home%");
+        plugin.dispatchPlayerTemplate(player, command, Map.of("%home%", name));
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (player.isOnline()) showSetHomePicker(player, returnMenuId, fallbackCommand);
+        }, 2L);
     }
 
     private void showNewHomeForm(Player player, String returnMenuId, String fallbackCommand) {
@@ -150,58 +259,46 @@ public final class BedrockFormService {
         String limitText = limit < 0 ? "∞" : Integer.toString(limit);
 
         CustomForm form = CustomForm.builder()
-                .title("Set Home Baru")
-                .input("Nama Home (" + used + "/" + limitText + ")", "contoh: rumah", "")
-                .closedOrInvalidResultHandler(() -> sync(() -> showHomesMenu(player, returnMenuId, fallbackCommand)))
+                .title("Nama Home Custom")
+                .input("Nama Home (" + used + "/" + limitText + ")", "contoh: rumah2", "")
+                .closedOrInvalidResultHandler(() -> sync(() -> showSetHomePicker(player, returnMenuId, fallbackCommand)))
                 .validResultHandler(response -> sync(() -> {
                     String rawName = response.asInput(0);
-                    final String name = rawName == null ? "" : rawName.trim();
+                    String name = rawName == null ? "" : rawName.trim();
                     if (!HOME_NAME.matcher(name).matches()) {
                         plugin.message(player, "invalid-home-name");
                         showNewHomeForm(player, returnMenuId, fallbackCommand);
                         return;
                     }
-
-                    EssentialsHomeService currentHomes = plugin.homes();
-                    if (currentHomes != null) {
-                        int currentLimit = currentHomes.maxHomes(player);
-                        int currentUsed = currentHomes.homes(player).size();
-                        boolean existing = currentHomes.homes(player).stream().anyMatch(home -> home.equalsIgnoreCase(name));
-                        if (!existing && currentLimit >= 0 && currentUsed >= currentLimit) {
-                            plugin.message(player, "home-limit-reached", "%used%", Integer.toString(currentUsed), "%max%", Integer.toString(currentLimit));
-                            showHomesMenu(player, returnMenuId, fallbackCommand);
-                            return;
-                        }
-                    }
-
-                    String command = plugin.getConfig().getString("integrations.essentials-home.set-command", "sethome %home%");
-                    plugin.dispatchPlayerTemplate(player, command, Map.of("%home%", name));
-                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                        if (player.isOnline()) showHomesMenu(player, returnMenuId, fallbackCommand);
-                    }, 2L);
+                    confirmOrSetHome(player, name, returnMenuId, fallbackCommand);
                 }))
                 .build();
         send(player, form);
     }
 
-    private void showHomeActions(Player player, String home, String returnMenuId, String fallbackCommand) {
+    private void showDeleteHomePicker(Player player, String returnMenuId, String fallbackCommand) {
+        EssentialsHomeService homes = plugin.homes();
+        if (homes == null || !homes.available()) {
+            showHomesMenu(player, returnMenuId, fallbackCommand);
+            return;
+        }
+
+        List<String> names = homes.homes(player);
         SimpleForm.Builder builder = SimpleForm.builder()
-                .title("Home • " + home)
-                .content("Pilih tindakan untuk home ini.");
-        addButton(builder, "Teleport ke " + home, "home", "textures/items/ender_pearl");
-        addButton(builder, "Hapus " + home, "delete", "textures/items/barrier");
+                .title("Hapus Home")
+                .content(names.isEmpty() ? "Kamu belum punya home." : "Pilih home yang ingin dihapus.");
+        for (String name : names) addButton(builder, name, "delete", "textures/items/barrier");
         addButton(builder, "Kembali", "back", "textures/items/arrow");
+        int backIndex = names.size();
 
         send(player, builder.validResultHandler(response -> sync(() -> {
-            switch (response.clickedButtonId()) {
-                case 0 -> {
-                    String command = plugin.getConfig().getString("integrations.essentials-home.teleport-command", "home %home%");
-                    plugin.dispatchPlayerTemplate(player, command, Map.of("%home%", home));
-                }
-                case 1 -> showDeleteHomeConfirm(player, home, returnMenuId, fallbackCommand);
-                case 2 -> showHomesMenu(player, returnMenuId, fallbackCommand);
-                default -> { }
+            int selected = response.clickedButtonId();
+            if (selected == backIndex) {
+                showHomesMenu(player, returnMenuId, fallbackCommand);
+                return;
             }
+            if (selected < 0 || selected >= names.size()) return;
+            showDeleteHomeConfirm(player, names.get(selected), returnMenuId, fallbackCommand);
         })).build());
     }
 
@@ -216,14 +313,18 @@ public final class BedrockFormService {
                         String command = plugin.getConfig().getString("integrations.essentials-home.delete-command", "delhome %home%");
                         plugin.dispatchPlayerTemplate(player, command, Map.of("%home%", home));
                         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                            if (player.isOnline()) showHomesMenu(player, returnMenuId, fallbackCommand);
+                            if (player.isOnline()) showDeleteHomePicker(player, returnMenuId, fallbackCommand);
                         }, 2L);
                     } else {
-                        showHomeActions(player, home, returnMenuId, fallbackCommand);
+                        showDeleteHomePicker(player, returnMenuId, fallbackCommand);
                     }
                 }))
                 .build();
         send(player, form);
+    }
+
+    private boolean containsHome(List<String> homes, String name) {
+        return homes.stream().anyMatch(home -> home.equalsIgnoreCase(name));
     }
 
     private void showPayPlayerSelect(Player player, String returnMenuId) {

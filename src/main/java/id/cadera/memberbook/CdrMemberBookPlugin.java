@@ -91,7 +91,7 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(memberBookService, this);
         memberBookService.giveToOnlinePlayers();
         memberBookService.startEnforcement();
-        getLogger().info("CdrMemberBook v1.5.0 enabled.");
+        getLogger().info("CdrMemberBook v1.5.1 enabled.");
     }
 
     @Override
@@ -166,7 +166,12 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
             getConfig().set("member-book.dynamic.refresh-on-world-change", true);
         }
 
-        getConfig().set("config-version", 7);
+        if (configVersion < 8) {
+            getConfig().set("integrations.essentials-home.presets", java.util.List.of("rumah", "base", "farm", "tambang", "shop"));
+            getConfig().set("integrations.essentials-home.allow-custom-name", true);
+        }
+
+        getConfig().set("config-version", 8);
         saveConfig();
     }
 
