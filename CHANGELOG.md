@@ -6,6 +6,18 @@
 - Plugin identity, Maven artifact, Java main class, dan Java package diganti menjadi CdrMemberBook.
 - Permission prefix lama `moonsignmenu.*` tetap dipertahankan sementara untuk kompatibilitas server yang sudah berjalan.
 
+## 1.3.2
+
+- Member Book sekarang bebas dipindah-pindah di inventory dan hotbar player sendiri.
+- Default `permanent-hotbar` diubah menjadi `false`; slot `hotbar-slot` hanya dipakai sebagai slot awal pemberian buku.
+- Ditambahkan `member-book.prevent-external-storage` dengan default `true`.
+- Member Book tidak dapat dimasukkan ke chest, ender chest, shulker, PlayerVaults/PV, plugin GUI, crafting/result inventory, atau inventory eksternal lainnya.
+- Proteksi mencakup normal click, shift-click, inventory drag, hotbar number-key swap, dan offhand swap ke inventory eksternal.
+- Member Book tetap dapat dipindahkan antar-slot inventory milik player, termasuk hotbar dan offhand.
+- Right-click Member Book dari main hand maupun offhand tetap membuka menu.
+- Periodic hotbar enforcement hanya dijalankan jika mode legacy `permanent-hotbar: true` digunakan, mencegah duplikasi saat buku sedang berada di cursor.
+- Config migration v3 -> v4 otomatis menonaktifkan `permanent-hotbar`/`prevent-move` dan mengaktifkan `prevent-external-storage`.
+- Version bumped to `1.3.2`.
 
 ## 1.3.1
 
