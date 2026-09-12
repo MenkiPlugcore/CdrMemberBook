@@ -14,7 +14,6 @@ import org.bukkit.event.block.BlockDispenseEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.ClickType;
-import org.bukkit.event.inventory.Inventory;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
@@ -28,6 +27,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -142,9 +142,7 @@ public final class MemberBookService implements Listener {
         if (recoverySuppressed.contains(player.getUniqueId())) return;
 
         if (isPermanentHotbar()) {
-            // First sanitize duplicates/cursor/open-container state without creating a new copy.
             reconcileMovableBook(player, false, false, false);
-            // Never create while the legitimate book is temporarily on the cursor.
             if (isMemberBook(player.getItemOnCursor())) return;
             ensureLockedHotbarBook(player);
             return;
@@ -202,7 +200,6 @@ public final class MemberBookService implements Listener {
 
         if (externalBookSlots.isEmpty()) return alreadyOwned;
 
-        // If the player already owns a legitimate copy, all visible external copies are invalid duplicates.
         if (alreadyOwned) {
             for (int slot : externalBookSlots) inventory.setItem(slot, null);
             return true;
