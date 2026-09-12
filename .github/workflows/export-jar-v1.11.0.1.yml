@@ -1,0 +1,40 @@
+name: Export CdrMemberBook v1.11.0.1 JAR
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/export-jar-v1.11.0.1.yml'
+
+permissions:
+  contents: read
+
+env:
+  BUILD_COMMIT: a37c57c1bf4d6299f37e07f0030aeaeca9efb1eb
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout clean hotfix head
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.BUILD_COMMIT }}
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Build JAR
+        run: mvn -B -ntp package
+
+      - name: Upload JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: CdrMemberBook-1.11.0.1
+          path: target/CdrMemberBook-1.11.0.1.jar
+          if-no-files-found: error
+          retention-days: 7
