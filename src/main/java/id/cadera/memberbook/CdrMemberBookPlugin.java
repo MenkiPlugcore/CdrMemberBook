@@ -104,7 +104,7 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
         memberBookService.giveToOnlinePlayers();
         memberBookService.startEnforcement();
         getLogger().info("Member Book mode: " + memberBookService.modeName());
-        getLogger().info("CdrMemberBook v1.9.0 enabled.");
+        getLogger().info("CdrMemberBook v1.9.1 enabled.");
     }
 
     @Override
@@ -245,7 +245,11 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
             getConfig().set("menu.actions.enabled", true);
         }
 
-        getConfig().set("config-version", 17);
+        if (configVersion < 18) {
+            getConfig().set("menu.conditions.placeholderapi", true);
+        }
+
+        getConfig().set("config-version", 18);
         saveConfig();
     }
 

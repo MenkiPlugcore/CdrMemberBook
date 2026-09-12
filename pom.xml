@@ -6,7 +6,7 @@
 
     <groupId>id.cadera</groupId>
     <artifactId>CdrMemberBook</artifactId>
-    <version>1.9.0</version>
+    <version>1.9.1</version>
     <name>CdrMemberBook</name>
     <description>Config-driven Bedrock/Java member menu with native TP, homes, pay and trade flows for CdrMemberBook.</description>
 

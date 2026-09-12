@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import me.clip.placeholderapi.PlaceholderAPI;
 
 public final class MenuConfigService {
     private static final Set<String> KNOWN_TYPES = Set.of("command", "teleport", "homes", "pay", "trade", "report", "submenu", "close");
@@ -36,10 +37,23 @@ public final class MenuConfigService {
                     b.getString("command", ""), b.getString("executor", "player"), b.getString("submenu", ""),
                     b.getString("icon", ""), b.getString("java-material", "PAPER"), b.getString("permission", ""),
                     b.getInt("order", 100), b.getStringList("lore"), b.getStringList("requires-plugins"),
-                    b.getString("requires-command", ""), b.getBoolean("auto-detect-command", true), parseActions(b)));
+                    b.getString("requires-command", ""), b.getBoolean("auto-detect-command", true), parseActions(b), parseConditions(b)));
         }
         buttons.sort(Comparator.comparingInt(MenuButton::order).thenComparing(MenuButton::key));
         return new MenuDefinition(normalized, title == null ? "" : title, content == null ? "" : content, backMenu, List.copyOf(buttons));
+    }
+
+    private MenuConditions parseConditions(ConfigurationSection button) {
+        ConfigurationSection c = button.getConfigurationSection("conditions");
+        if (c == null) return new MenuConditions("ANY", List.of(), List.of(), List.of(), 0, -1, List.of());
+        List<PlaceholderCondition> placeholders = new ArrayList<>();
+        for (Map<?, ?> raw : c.getMapList("placeholders")) {
+            placeholders.add(new PlaceholderCondition(string(raw.get("value"), ""), string(raw.get("operator"), "=="), string(raw.get("compare"), "")));
+        }
+        ConfigurationSection single = c.getConfigurationSection("placeholder");
+        if (single != null) placeholders.add(new PlaceholderCondition(single.getString("value", ""), single.getString("operator", "=="), single.getString("compare", "")));
+        return new MenuConditions(c.getString("platform", "ANY"), c.getStringList("worlds"), c.getStringList("excluded-worlds"),
+                c.getStringList("permissions"), c.getInt("min-online", 0), c.getInt("max-online", -1), List.copyOf(placeholders));
     }
 
     private List<MenuAction> parseActions(ConfigurationSection button) {
@@ -71,6 +85,8 @@ public final class MenuConfigService {
     public Availability availability(Player player, MenuButton button) {
         for (String p : button.requiredPlugins()) if (p != null && !p.isBlank() && !plugin.getServer().getPluginManager().isPluginEnabled(p.trim())) return new Availability(false,"missing-plugin",p.trim());
         if (button.requiredCommand()!=null && !button.requiredCommand().isBlank() && !commandAvailable(button.requiredCommand())) return new Availability(false,"missing-command",rootCommand(button.requiredCommand()));
+        Availability condition = conditionsAvailability(player, button.conditions());
+        if (!condition.available()) return condition;
         if (!button.actions().isEmpty()) return actionsAvailability(button.actions());
         if (!KNOWN_TYPES.contains(button.type())) return new Availability(false,"invalid-type","type="+button.type());
         return switch(button.type()) {
@@ -83,6 +99,55 @@ public final class MenuConfigService {
             case "command" -> button.command()==null || button.command().isBlank() ? new Availability(false,"empty-command","command kosong") : (!plugin.getConfig().getBoolean("menu.auto-detect-command-dependencies",true) || !button.autoDetectCommand() ? new Availability(true,"ok","auto-detect off") : availableCommand(button.command()));
             default -> new Availability(false,"invalid-type",button.type());
         };
+    }
+
+
+    private Availability conditionsAvailability(Player player, MenuConditions c) {
+        if (c == null) return new Availability(true,"ok","no-conditions");
+        for (String permission : c.permissions()) if (permission != null && !permission.isBlank() && !player.hasPermission(permission)) return new Availability(false,"condition-permission",permission);
+        String platform = c.platform() == null ? "ANY" : c.platform().trim().toUpperCase(Locale.ROOT);
+        boolean bedrock = plugin.forms()!=null && plugin.forms().isBedrock(player);
+        if (platform.equals("BEDROCK") && !bedrock) return new Availability(false,"condition-platform","BEDROCK");
+        if (platform.equals("JAVA") && bedrock) return new Availability(false,"condition-platform","JAVA");
+        if (!Set.of("ANY","JAVA","BEDROCK").contains(platform)) return new Availability(false,"condition-platform-invalid",platform);
+        if (!c.worlds().isEmpty() && c.worlds().stream().noneMatch(w -> w.equalsIgnoreCase(player.getWorld().getName()))) return new Availability(false,"condition-world",player.getWorld().getName());
+        if (c.excludedWorlds().stream().anyMatch(w -> w.equalsIgnoreCase(player.getWorld().getName()))) return new Availability(false,"condition-world-excluded",player.getWorld().getName());
+        int online = plugin.getServer().getOnlinePlayers().size();
+        if (online < c.minOnline()) return new Availability(false,"condition-online","min="+c.minOnline());
+        if (c.maxOnline() >= 0 && online > c.maxOnline()) return new Availability(false,"condition-online","max="+c.maxOnline());
+        if (!c.placeholders().isEmpty() && !plugin.getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) return new Availability(false,"condition-placeholderapi","PlaceholderAPI missing");
+        for (PlaceholderCondition p : c.placeholders()) {
+            String left = resolveConditionText(player, p.value());
+            String right = resolveConditionText(player, p.compare());
+            if (!compare(left, p.operator(), right)) return new Availability(false,"condition-placeholder",p.value()+" "+p.operator()+" "+p.compare()+" (got="+left+")");
+        }
+        return new Availability(true,"ok","conditions-pass");
+    }
+
+    private String resolveConditionText(Player player, String value) {
+        String text = value == null ? "" : value.replace("%player%", player.getName()).replace("%uuid%", player.getUniqueId().toString()).replace("%world%", player.getWorld().getName()).replace("%online%", Integer.toString(plugin.getServer().getOnlinePlayers().size()));
+        if (plugin.getServer().getPluginManager().isPluginEnabled("PlaceholderAPI") && plugin.getConfig().getBoolean("menu.conditions.placeholderapi", true)) {
+            try { text = PlaceholderAPI.setPlaceholders(player, text); } catch (Throwable ignored) { }
+        }
+        return text;
+    }
+
+    private boolean compare(String left, String operator, String right) {
+        String op = operator == null ? "==" : operator.trim().toLowerCase(Locale.ROOT);
+        return switch (op) {
+            case "==", "=", "equals" -> left.equalsIgnoreCase(right);
+            case "!=", "not_equals" -> !left.equalsIgnoreCase(right);
+            case "contains" -> left.toLowerCase(Locale.ROOT).contains(right.toLowerCase(Locale.ROOT));
+            case "not_contains" -> !left.toLowerCase(Locale.ROOT).contains(right.toLowerCase(Locale.ROOT));
+            case "starts_with" -> left.toLowerCase(Locale.ROOT).startsWith(right.toLowerCase(Locale.ROOT));
+            case "ends_with" -> left.toLowerCase(Locale.ROOT).endsWith(right.toLowerCase(Locale.ROOT));
+            case ">", ">=", "<", "<=" -> numericCompare(left, op, right);
+            default -> false;
+        };
+    }
+    private boolean numericCompare(String left, String op, String right) {
+        try { double a=Double.parseDouble(left.replace(",", "").trim()), b=Double.parseDouble(right.replace(",", "").trim()); return switch(op){case ">"->a>b;case ">="->a>=b;case "<"->a<b;case "<="->a<=b;default->false;}; }
+        catch (NumberFormatException ignored) { return false; }
     }
 
     private Availability actionsAvailability(List<MenuAction> actions) {
@@ -114,6 +179,8 @@ public final class MenuConfigService {
 
     public record Availability(boolean available,String code,String detail){}
     public record MenuAction(String type,String value,String executor,long ticks,float volume,float pitch){}
+    public record PlaceholderCondition(String value,String operator,String compare){}
+    public record MenuConditions(String platform,List<String> worlds,List<String> excludedWorlds,List<String> permissions,int minOnline,int maxOnline,List<PlaceholderCondition> placeholders){}
     public record MenuDefinition(String id,String title,String content,String backMenu,List<MenuButton> buttons){}
-    public record MenuButton(String key,String name,String type,String command,String executor,String submenu,String icon,String javaMaterial,String permission,int order,List<String> lore,List<String> requiredPlugins,String requiredCommand,boolean autoDetectCommand,List<MenuAction> actions){}
+    public record MenuButton(String key,String name,String type,String command,String executor,String submenu,String icon,String javaMaterial,String permission,int order,List<String> lore,List<String> requiredPlugins,String requiredCommand,boolean autoDetectCommand,List<MenuAction> actions,MenuConditions conditions){}
 }

@@ -156,7 +156,7 @@ public final class MemberBookAdminCommand implements CommandExecutor, TabComplet
     private String shorten(String value, int max) { return value.length() <= max ? value : value.substring(0, max - 3) + "..."; }
 
     private void sendUsage(CommandSender sender, String label) {
-        sender.sendMessage(Colors.legacy("&dCdrMemberBook &fv1.8.4 &8- &7Admin Tools"));
+        sender.sendMessage(Colors.legacy("&dCdrMemberBook &fv1.9.1 &8- &7Admin Tools"));
         sender.sendMessage(Colors.legacy("&f/" + label + " <give|remove|fix|refresh|status|tutorialreset|tutorialshow> <player>"));
         sender.sendMessage(Colors.legacy("&f/" + label + " menudebug <player> [menu] &8- &7cek alasan tombol tampil/hilang"));
         sender.sendMessage(Colors.legacy("&f/" + label + " reports [page] [open|resolved|all] &8- &7list report"));

@@ -1,4 +1,4 @@
-# CdrMemberBook v1.9.0
+# CdrMemberBook v1.9.1
 
 Standalone Paper plugin by **CADERA** untuk member menu Minecraft Java + Bedrock. Project ini dipisahkan dari monorepo `MenkiPlugcore/plugin` agar release, maintenance, issue, dan update berikutnya dapat dikelola langsung dari repository ini.
 
@@ -266,3 +266,33 @@ All public-facing branding now uses **CdrMemberBook**. Default permission nodes 
 ## Full CdrMemberBook Branding v1.8.2
 
 CdrMemberBook is now fully server-agnostic. Public UI, default config, permission nodes, item/model namespace examples, tutorial, report system and documentation use only the **CdrMemberBook** identity. Official permissions use `cdrmemberbook.*`.
+
+
+## Advanced Menu Actions & Conditions
+
+`v1.9.0` adds ordered button action chains (`command`, `console-command`, `message`, `sound`, `close`, `open-menu`, `delay`). `v1.9.1` adds smart conditions by platform, world, permission, online count and PlaceholderAPI comparisons. Use `/cdrmemberbook menudebug <player> [menu]` to see why each button is visible or hidden.
+
+```yaml
+example:
+  enabled: true
+  name: Ranked Shop
+  type: command
+  order: 200
+  actions:
+    - type: close
+    - type: sound
+      value: ENTITY_PLAYER_LEVELUP
+    - type: command
+      value: shop
+    - type: message
+      value: '&aShop dibuka.'
+  conditions:
+    platform: ANY
+    worlds: [world]
+    permissions: [server.shop]
+    min-online: 1
+    placeholders:
+      - value: '%luckperms_primary_group%'
+        operator: '!='
+        compare: 'default'
+```

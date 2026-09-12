@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.9.1 - Menu Conditions Advanced
+
+- Added per-button platform, world, extra permission and online-count conditions.
+- Added PlaceholderAPI comparisons for rank/economy/level/custom plugin state.
+- Menu debug reports the exact condition that hides an unavailable button.
+
+
 ## 1.9.0 - Advanced Menu Actions
 
 - Buttons can execute ordered action chains instead of one command.

@@ -1,5 +1,5 @@
-# CdrMemberBook v1.9.0
-config-version: 17
+# CdrMemberBook v1.9.1
+config-version: 18
 prefix: '&8[&dCdrMemberBook&8] &r'
 
 teleport:
@@ -233,6 +233,8 @@ integrations:
 #   close    = close the menu
 # Advanced actions v1.9.0: optional `actions:` list overrides legacy single action.
 # Types: command, console-command, message, sound, close, open-menu, delay.
+# Conditions v1.9.1: platform ANY/JAVA/BEDROCK, worlds, excluded-worlds, permissions,
+# min-online/max-online, dan placeholder comparisons (==, !=, contains, >, >=, <, <=).
 #
 # For Java players, homes/pay/trade use their configured `command` as fallback.
 # executor: player (default) or console
@@ -247,6 +249,9 @@ menu:
   log-invalid-buttons: true
   actions:
     enabled: true
+  conditions:
+    # Izinkan PlaceholderAPI untuk evaluasi conditions.placeholder(s).
+    placeholderapi: true
 
   main:
     title: '&d&lCdrMemberBook &fMenu'
