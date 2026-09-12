@@ -12,6 +12,7 @@ import id.cadera.memberbook.CdrMemberBookPlugin;
 import id.cadera.memberbook.integration.EssentialsHomeService;
 import id.cadera.memberbook.menu.MenuConfigService.MenuButton;
 import id.cadera.memberbook.menu.MenuConfigService.MenuDefinition;
+import id.cadera.memberbook.report.ReportService;
 import id.cadera.memberbook.tp.TeleportMode;
 
 import java.math.BigDecimal;
@@ -126,6 +127,11 @@ public final class BedrockFormService {
             plugin.message(player, "no-permission");
             return;
         }
+        if (!plugin.menus().isAvailable(player, button)) {
+            plugin.message(player, "feature-unavailable");
+            showConfiguredMenu(player, menu.id());
+            return;
+        }
 
         switch (button.type().toLowerCase(Locale.ROOT)) {
             case "command" -> plugin.executeMenuCommand(player, button);
@@ -133,6 +139,7 @@ public final class BedrockFormService {
             case "homes" -> showHomesMenu(player, menu.id(), button.command());
             case "pay" -> showPayPlayerSelect(player, menu.id());
             case "trade" -> showTradeMenu(player, menu.id());
+            case "report" -> showReportPlayerSelect(player, menu.id());
             case "submenu" -> {
                 if (button.submenu() == null || button.submenu().isBlank()) {
                     plugin.message(player, "menu-not-found", "%menu%", button.key());
@@ -569,6 +576,93 @@ public final class BedrockFormService {
                     }
                     String command = plugin.getConfig().getString("integrations.pay.command", "pay %target% %amount%");
                     plugin.dispatchPlayerTemplate(player, command, Map.of("%target%", currentTarget.getName(), "%amount%", amount));
+                }))
+                .build();
+        send(player, form);
+    }
+
+    private void showReportPlayerSelect(Player player, String returnMenuId) {
+        List<PlayerChoice> choices = onlineTargets(player);
+        SimpleForm.Builder builder = SimpleForm.builder()
+                .title("Lapor Player")
+                .content(choices.isEmpty() ? "Tidak ada player lain yang online." : "Pilih player yang ingin dilaporkan.");
+        for (PlayerChoice choice : choices) addButton(builder, choice.name(), "player", "textures/items/name_tag");
+        addButton(builder, "Kembali", "back", "textures/items/arrow");
+        int backIndex = choices.size();
+        send(player, builder.validResultHandler(response -> sync(() -> {
+            int selected = response.clickedButtonId();
+            if (selected == backIndex) {
+                showConfiguredMenu(player, returnMenuId);
+                return;
+            }
+            if (selected < 0 || selected >= choices.size()) return;
+            Player target = Bukkit.getPlayer(choices.get(selected).uuid());
+            if (target == null) {
+                plugin.message(player, "player-not-found");
+                showReportPlayerSelect(player, returnMenuId);
+                return;
+            }
+            showReportReasonForm(player, target, returnMenuId);
+        })).build());
+    }
+
+    private void showReportReasonForm(Player player, Player target, String returnMenuId) {
+        CustomForm form = CustomForm.builder()
+                .title("Lapor " + target.getName())
+                .input("Alasan laporan", "contoh: grief, cheat, toxic", "")
+                .closedOrInvalidResultHandler(() -> sync(() -> showReportPlayerSelect(player, returnMenuId)))
+                .validResultHandler(response -> sync(() -> {
+                    String reason = response.asInput(0);
+                    int min = Math.max(1, plugin.getConfig().getInt("integrations.report.min-reason-length", 3));
+                    if (reason == null || reason.trim().length() < min) {
+                        plugin.message(player, "report-reason-too-short", "%min%", Integer.toString(min));
+                        showReportReasonForm(player, target, returnMenuId);
+                        return;
+                    }
+                    Player currentTarget = Bukkit.getPlayer(target.getUniqueId());
+                    if (currentTarget == null) {
+                        plugin.message(player, "player-not-found");
+                        showReportPlayerSelect(player, returnMenuId);
+                        return;
+                    }
+                    showReportConfirm(player, currentTarget, reason.trim(), returnMenuId);
+                }))
+                .build();
+        send(player, form);
+    }
+
+    private void showReportConfirm(Player player, Player target, String reason, String returnMenuId) {
+        ModalForm form = ModalForm.builder()
+                .title("Konfirmasi Laporan")
+                .content("Laporkan " + target.getName() + "?\n\nAlasan: " + reason)
+                .button1("KIRIM LAPORAN")
+                .button2("KEMBALI")
+                .validResultHandler(response -> sync(() -> {
+                    if (!response.clickedFirst()) {
+                        showReportReasonForm(player, target, returnMenuId);
+                        return;
+                    }
+                    Player currentTarget = Bukkit.getPlayer(target.getUniqueId());
+                    if (currentTarget == null) {
+                        plugin.message(player, "player-not-found");
+                        showReportPlayerSelect(player, returnMenuId);
+                        return;
+                    }
+                    ReportService.SubmitResult result = plugin.reports().submit(player, currentTarget, reason);
+                    if (result.success()) {
+                        plugin.message(player, "report-sent", "%id%", Integer.toString(result.id()),
+                                "%player%", currentTarget.getName());
+                        showConfiguredMenu(player, returnMenuId);
+                    } else if ("cooldown".equals(result.reasonCode())) {
+                        plugin.message(player, "report-cooldown", "%seconds%", Long.toString(result.waitSeconds()));
+                        showConfiguredMenu(player, returnMenuId);
+                    } else if ("self".equals(result.reasonCode())) {
+                        plugin.message(player, "cannot-report-self");
+                        showReportPlayerSelect(player, returnMenuId);
+                    } else {
+                        plugin.message(player, "report-failed");
+                        showConfiguredMenu(player, returnMenuId);
+                    }
                 }))
                 .build();
         send(player, form);

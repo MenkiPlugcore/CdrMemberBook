@@ -1,5 +1,5 @@
 name: CdrMemberBook
-version: '1.7.0'
+version: '1.8.0'
 main: id.cadera.memberbook.CdrMemberBookPlugin
 api-version: '1.21'
 author: CADERA
@@ -58,6 +58,8 @@ permissions:
   moonsignmenu.admin.reload:
     default: op
   moonsignmenu.admin.memberbook:
+    default: op
+  moonsignmenu.staff.report:
     default: op
   moonsignmenu.bypass.cooldown:
     default: op

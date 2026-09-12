@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.8.0 - Smart Menu Conditions & Native Report
+
+- Menu buttons can auto-hide when their command/dependency is unavailable.
+- Generic command buttons auto-detect their root command, so Bank/Shop/AH/etc do not appear when no provider exists.
+- Homes, Pay and AxTrade buttons validate their integrations before being shown.
+- Added optional per-button `requires-plugins`, `requires-command`, and `auto-detect-command`.
+- Added native Bedrock report flow with player picker, reason input, confirmation, cooldown, staff notification and persistent `reports.yml`.
+- Java keeps `/report` as a fallback only when that command actually exists.
+
 ## 1.7.0 - First Join Tutorial
 
 - Added native three-step Bedrock first-join tutorial.

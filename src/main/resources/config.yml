@@ -1,5 +1,5 @@
-# CdrMemberBook v1.7.0
-config-version: 12
+# CdrMemberBook v1.8.0
+config-version: 13
 prefix: '&8[&dMOONSIGN&8] &r'
 
 teleport:
@@ -210,6 +210,16 @@ integrations:
     deny-command: 'axtrade deny %target%'
     toggle-command: 'axtrade toggle'
 
+  report:
+    # Built-in native Bedrock report flow. Tidak membutuhkan plugin report eksternal.
+    enabled: true
+    cooldown-seconds: 60
+    min-reason-length: 3
+    max-reason-length: 200
+    staff-permission: 'moonsignmenu.staff.report'
+    # Optional hook setelah report tersimpan. Placeholder: %id%, %reporter%, %target%, %reason%.
+    console-command: ''
+
 # Fully config-driven member menu.
 # Button types:
 #   command  = run any player/console command
@@ -225,6 +235,10 @@ integrations:
 # Placeholders in names/commands: %player%, %world%; commands also support %uuid%.
 menu:
   hide-buttons-without-permission: true
+  # Sembunyikan tombol jika dependency/command penyedianya tidak tersedia.
+  hide-unavailable-buttons: true
+  # Untuk type: command, command root dicek otomatis. Contoh /bank tidak ada -> tombol Bank hilang.
+  auto-detect-command-dependencies: true
 
   main:
     title: '&d&lMOONSIGN &fMenu Member'
@@ -351,7 +365,8 @@ menu:
       report:
         enabled: true
         name: Lapor
-        type: command
+        type: report
+        # Java fallback jika ada plugin eksternal dengan /report. Bedrock memakai report native CdrMemberBook.
         command: report
         executor: player
         order: 110
@@ -457,6 +472,12 @@ messages:
   action-disabled: '&eFitur ini belum diaktifkan atau command tombol masih kosong.'
   menu-not-found: '&cMenu/submenu &f%menu% &ctidak ditemukan di config.yml.'
   invalid-button-type: '&cTipe tombol &f%type% &ctidak dikenali.'
+  feature-unavailable: '&eFitur ini sedang tidak tersedia karena plugin/command yang dibutuhkan tidak aktif.'
+  report-reason-too-short: '&eAlasan laporan minimal &f%min% &ekarakter.'
+  report-sent: '&aLaporan &f#%id% &auntuk &f%player% &aberhasil dikirim ke staff.'
+  report-cooldown: '&eTunggu &f%seconds%s &esebelum membuat laporan lagi.'
+  cannot-report-self: '&cKamu tidak bisa melaporkan diri sendiri.'
+  report-failed: '&cLaporan tidak dapat dikirim. Coba lagi atau hubungi staff.'
   config-reloaded: '&aConfig CdrMemberBook berhasil direload.'
   member-book-cannot-drop: '&eMember Book tidak dapat dibuang.'
   member-book-external-storage-blocked: '&eMember Book hanya boleh disimpan di inventory kamu sendiri.'

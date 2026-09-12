@@ -18,6 +18,7 @@ import id.cadera.memberbook.integration.EssentialsHomeService;
 import id.cadera.memberbook.item.MemberBookService;
 import id.cadera.memberbook.menu.MenuConfigService;
 import id.cadera.memberbook.menu.MenuConfigService.MenuButton;
+import id.cadera.memberbook.report.ReportService;
 import id.cadera.memberbook.tp.TeleportRequestManager;
 import id.cadera.memberbook.tp.ToggleStore;
 import id.cadera.memberbook.tutorial.FirstJoinTutorialService;
@@ -35,6 +36,7 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
     private MenuConfigService menuConfigService;
     private EssentialsHomeService essentialsHomeService;
     private FirstJoinTutorialService tutorialService;
+    private ReportService reportService;
     private NamespacedKey playerKey;
     private NamespacedKey buttonKey;
 
@@ -51,6 +53,7 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
         requestManager = new TeleportRequestManager(this, toggleStore);
         javaMenuService = new JavaMenuService(this);
         memberBookService = new MemberBookService(this);
+        reportService = new ReportService(this);
 
         if (Bukkit.getPluginManager().isPluginEnabled("Essentials")) {
             try {
@@ -97,7 +100,7 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
         memberBookService.giveToOnlinePlayers();
         memberBookService.startEnforcement();
         getLogger().info("Member Book mode: " + memberBookService.modeName());
-        getLogger().info("CdrMemberBook v1.7.0 enabled.");
+        getLogger().info("CdrMemberBook v1.8.0 enabled.");
     }
 
     @Override
@@ -210,7 +213,19 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
             getConfig().set("tutorial.open-menu-after-complete", true);
         }
 
-        getConfig().set("config-version", 12);
+        if (configVersion < 13) {
+            getConfig().set("menu.hide-unavailable-buttons", true);
+            getConfig().set("menu.auto-detect-command-dependencies", true);
+            getConfig().set("integrations.report.enabled", true);
+            getConfig().set("integrations.report.cooldown-seconds", 60L);
+            getConfig().set("integrations.report.min-reason-length", 3);
+            getConfig().set("integrations.report.max-reason-length", 200);
+            getConfig().set("integrations.report.staff-permission", "moonsignmenu.staff.report");
+            getConfig().set("integrations.report.console-command", "");
+            migrateSpecialButton("report", "report", "report", "report");
+        }
+
+        getConfig().set("config-version", 13);
         saveConfig();
     }
 
@@ -295,6 +310,10 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
         return essentialsHomeService;
     }
 
+    public ReportService reports() {
+        return reportService;
+    }
+
     public FirstJoinTutorialService tutorial() {
         return tutorialService;
     }
@@ -310,6 +329,10 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
     public void executeMenuCommand(Player player, MenuButton button) {
         if (!menuConfigService.canUse(player, button)) {
             message(player, "no-permission");
+            return;
+        }
+        if (!menuConfigService.isAvailable(player, button)) {
+            message(player, "feature-unavailable");
             return;
         }
         String command = button.command();
