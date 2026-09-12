@@ -1,4 +1,4 @@
-# CdrMemberBook v1.9.3
+# CdrMemberBook v1.9.4
 
 Standalone Paper plugin by **CADERA** untuk member menu Minecraft Java + Bedrock. Project ini dipisahkan dari monorepo `MenkiPlugcore/plugin` agar release, maintenance, issue, dan update berikutnya dapat dikelola langsung dari repository ini.
 
@@ -14,7 +14,8 @@ Standalone Paper plugin by **CADERA** untuk member menu Minecraft Java + Bedrock
 
 - `/menu` atau klik kanan Member Book untuk membuka menu.
 - Native Bedrock Forms melalui Floodgate.
-- Java inventory GUI fallback.
+- Polished Java inventory GUI untuk `/menu`, lengkap dengan frame, pagination, player info, dan Smart Menu filtering.
+- Native Java + Bedrock Staff Report Center.
 - Built-in TPA / TPAHere / accept / deny / toggle.
 - Menu utama dan submenu config-driven.
 - Tombol `Kembali` pada submenu internal.

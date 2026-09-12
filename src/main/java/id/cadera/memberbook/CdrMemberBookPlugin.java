@@ -104,7 +104,7 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
         memberBookService.giveToOnlinePlayers();
         memberBookService.startEnforcement();
         getLogger().info("Member Book mode: " + memberBookService.modeName());
-        getLogger().info("CdrMemberBook v1.9.3 enabled.");
+        getLogger().info("CdrMemberBook v1.9.4 enabled.");
     }
 
     @Override
@@ -266,7 +266,18 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
             getConfig().set("integrations.report.center.allow-delete", true);
         }
 
-        getConfig().set("config-version", 20);
+        if (configVersion < 21) {
+            getConfig().set("java-menu.decorations.enabled", true);
+            getConfig().set("java-menu.decorations.filler-material", "BLACK_STAINED_GLASS_PANE");
+            getConfig().set("java-menu.decorations.accent-material", "MAGENTA_STAINED_GLASS_PANE");
+            getConfig().set("java-menu.decorations.click-hint", true);
+            String platform = getConfig().getString("menu.main.buttons.report-center.conditions.platform", "");
+            if (platform != null && platform.equalsIgnoreCase("BEDROCK")) {
+                getConfig().set("menu.main.buttons.report-center.conditions.platform", "ANY");
+            }
+        }
+
+        getConfig().set("config-version", 21);
         saveConfig();
     }
 

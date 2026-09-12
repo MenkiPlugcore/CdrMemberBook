@@ -108,9 +108,8 @@ public final class MenuConfigService {
                     yield new Availability(false,"report-disabled","native report disabled");
                 if (!plugin.getConfig().getBoolean("integrations.report.center.enabled", true))
                     yield new Availability(false,"report-center-disabled","center disabled");
-                if (plugin.forms() == null || !plugin.forms().isBedrock(player))
-                    yield new Availability(false,"bedrock-only","Report Center Bedrock only");
-                yield new Availability(true,"ok","native-report-center");
+                yield new Availability(true,"ok", plugin.forms()!=null && plugin.forms().isBedrock(player)
+                        ? "native-report-center-bedrock" : "native-report-center-java");
             }
             case "command" -> button.command()==null || button.command().isBlank() ? new Availability(false,"empty-command","command kosong") : (!plugin.getConfig().getBoolean("menu.auto-detect-command-dependencies",true) || !button.autoDetectCommand() ? new Availability(true,"ok","auto-detect off") : availableCommand(button.command()));
             default -> new Availability(false,"invalid-type",button.type());

@@ -1,5 +1,5 @@
-# CdrMemberBook v1.9.3
-config-version: 20
+# CdrMemberBook v1.9.4
+config-version: 21
 prefix: '&8[&dCdrMemberBook&8] &r'
 
 teleport:
@@ -229,6 +229,14 @@ integrations:
       page-size: 8
       allow-delete: true
 
+# Java inventory GUI presentation. /menu on Java opens this native GUI.
+java-menu:
+  decorations:
+    enabled: true
+    filler-material: BLACK_STAINED_GLASS_PANE
+    accent-material: MAGENTA_STAINED_GLASS_PANE
+    click-hint: true
+
 # Fully config-driven member menu.
 # Button types:
 #   command  = run any player/console command
@@ -413,10 +421,10 @@ menu:
         java-material: KNOWLEDGE_BOOK
         permission: 'cdrmemberbook.staff.report'
         conditions:
-          platform: BEDROCK
+          platform: ANY
         lore:
         - '&7Kelola laporan OPEN/RESOLVED.'
-        - '&7Khusus staff Bedrock.'
+        - '&7Native GUI untuk staff Java/Bedrock.'
 
       barter:
         enabled: true

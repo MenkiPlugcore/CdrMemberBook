@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.9.4 - Java Menu UI & Report Center
+
+- Reworked `/menu` on Java into a polished fixed 6-row inventory layout with frame decorations and centered content slots.
+- Added Java menu player info, click hints, consistent Previous/Back/Next navigation and cleaner player picker/TP screens.
+- Added configurable Java GUI filler/accent materials without requiring a resource pack.
+- Added native Java Staff Report Center with OPEN / RESOLVED / ALL lists, pagination and report details.
+- Added Java Resolve, Reopen and Delete confirmations with permission rechecks on every report action.
+- Report Center is now available to both Java and Bedrock staff through the same `cdrmemberbook.staff.report` permission.
+- Config migrated to version 21; existing Bedrock-only Report Center button is migrated to platform `ANY`.
+
+
 ## 1.9.3 - Bedrock Staff Report Center
 
 - Added native Bedrock `Report Center` for staff permission `cdrmemberbook.staff.report`.
