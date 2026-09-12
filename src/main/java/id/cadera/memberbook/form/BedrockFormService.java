@@ -1,6 +1,7 @@
 package id.cadera.memberbook.form;
 
 import org.bukkit.Bukkit;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.geysermc.cumulus.form.CustomForm;
 import org.geysermc.cumulus.form.ModalForm;
@@ -163,7 +164,12 @@ public final class BedrockFormService {
                 .title("Teleport Home")
                 .content(names.isEmpty() ? "Kamu belum punya home." : "Pilih home tujuan.");
 
-        for (String name : names) addButton(builder, name, "home", "textures/items/ender_pearl");
+        for (String name : names) {
+            HomePreset preset = presetForOwnedHome(name);
+            String label = preset == null ? name : preset.displayName();
+            String icon = preset == null ? "textures/items/ender_pearl" : preset.icon();
+            addConfiguredButton(builder, plugin.formatMenuText(label, player), icon);
+        }
         addButton(builder, "Kembali", "back", "textures/items/arrow");
         int backIndex = names.size();
 
@@ -190,31 +196,26 @@ public final class BedrockFormService {
         List<String> existingHomes = sortedHomes(homes.homes(player));
         int limit = homes.maxHomes(player);
         String limitText = limit < 0 ? "∞" : Integer.toString(limit);
-        List<String> configured = plugin.getConfig().getStringList("integrations.essentials-home.presets");
-        List<String> presets = configured.stream()
-                .map(String::trim)
-                .filter(name -> HOME_NAME.matcher(name).matches())
-                .distinct()
-                .toList();
-        if (presets.isEmpty()) presets = List.of("rumah", "base", "farm", "tambang", "shop");
+        List<HomePreset> presets = homePresets(player);
 
         boolean allowCustom = plugin.getConfig().getBoolean("integrations.essentials-home.allow-custom-name", true);
         SimpleForm.Builder builder = SimpleForm.builder()
                 .title("Set Home")
                 .content("Home tersimpan: " + existingHomes.size() + "/" + limitText
-                        + "\nPilih nama home. Home yang sudah ada akan ditimpa setelah konfirmasi.");
+                        + "\nPilih preset home. Home yang sudah ada akan ditimpa setelah konfirmasi.");
 
-        for (String preset : presets) {
-            boolean existing = containsHome(existingHomes, preset);
-            addButton(builder, existing ? "Timpa: " + preset : "Set: " + preset,
-                    "home-add", "textures/items/bed_red");
+        for (HomePreset preset : presets) {
+            boolean existing = containsHome(existingHomes, preset.name());
+            String state = preset.allowed() ? (existing ? "Timpa: " : "Set: ") : "Terkunci: ";
+            addConfiguredButton(builder,
+                    plugin.formatMenuText(state + preset.displayName(), player),
+                    preset.icon());
         }
         if (allowCustom) addButton(builder, "Nama Custom", "home-add", "textures/items/name_tag");
         addButton(builder, "Kembali", "back", "textures/items/arrow");
 
         int customIndex = allowCustom ? presets.size() : -1;
         int backIndex = presets.size() + (allowCustom ? 1 : 0);
-        List<String> finalPresets = presets;
         send(player, builder.validResultHandler(response -> sync(() -> {
             int selected = response.clickedButtonId();
             if (selected == backIndex) {
@@ -225,8 +226,14 @@ public final class BedrockFormService {
                 showNewHomeForm(player, returnMenuId, fallbackCommand);
                 return;
             }
-            if (selected < 0 || selected >= finalPresets.size()) return;
-            confirmOrSetHome(player, finalPresets.get(selected), returnMenuId, fallbackCommand);
+            if (selected < 0 || selected >= presets.size()) return;
+            HomePreset preset = presets.get(selected);
+            if (!preset.allowed()) {
+                plugin.message(player, "home-preset-no-permission", "%home%", preset.name());
+                showSetHomePicker(player, returnMenuId, fallbackCommand);
+                return;
+            }
+            confirmOrSetHome(player, preset.name(), returnMenuId, fallbackCommand);
         })).build());
     }
 
@@ -234,6 +241,12 @@ public final class BedrockFormService {
         EssentialsHomeService homes = plugin.homes();
         if (homes == null || !homes.available()) {
             showHomesMenu(player, returnMenuId, fallbackCommand);
+            return;
+        }
+
+        if (!canUsePresetName(player, name)) {
+            plugin.message(player, "home-preset-no-permission", "%home%", name);
+            showSetHomePicker(player, returnMenuId, fallbackCommand);
             return;
         }
 
@@ -309,7 +322,12 @@ public final class BedrockFormService {
         SimpleForm.Builder builder = SimpleForm.builder()
                 .title("Hapus Home")
                 .content(names.isEmpty() ? "Kamu belum punya home." : "Pilih home yang ingin dihapus.");
-        for (String name : names) addButton(builder, name, "delete", "textures/items/barrier");
+        for (String name : names) {
+            HomePreset preset = presetForOwnedHome(name);
+            String label = preset == null ? name : preset.displayName();
+            String icon = preset == null ? "textures/items/barrier" : preset.icon();
+            addConfiguredButton(builder, plugin.formatMenuText(label, player), icon);
+        }
         addButton(builder, "Kembali", "back", "textures/items/arrow");
         int backIndex = names.size();
 
@@ -345,6 +363,83 @@ public final class BedrockFormService {
                 }))
                 .build();
         send(player, form);
+    }
+
+    private List<HomePreset> homePresets(Player player) {
+        List<String> names = configuredPresetNames();
+        boolean hideLocked = plugin.getConfig().getBoolean(
+                "integrations.essentials-home.hide-locked-presets", true);
+
+        return names.stream()
+                .map(name -> presetDefinition(name, player))
+                .filter(HomePreset::enabled)
+                .filter(preset -> preset.allowed() || !hideLocked)
+                .toList();
+    }
+
+    private List<String> configuredPresetNames() {
+        List<String> configured = plugin.getConfig().getStringList("integrations.essentials-home.presets");
+        List<String> names = configured.stream()
+                .map(String::trim)
+                .filter(name -> HOME_NAME.matcher(name).matches())
+                .distinct()
+                .toList();
+        return names.isEmpty() ? List.of("rumah", "base", "farm", "tambang", "shop") : names;
+    }
+
+    private HomePreset presetDefinition(String name, Player player) {
+        String base = "integrations.essentials-home.preset-details." + name + ".";
+        boolean enabled = plugin.getConfig().getBoolean(base + "enabled", true);
+        String displayName = plugin.getConfig().getString(base + "display-name", prettyHomeName(name));
+        String icon = plugin.getConfig().getString(base + "icon", defaultPresetIcon(name));
+        String permission = plugin.getConfig().getString(base + "permission", "");
+        if (displayName == null || displayName.isBlank()) displayName = prettyHomeName(name);
+        if (icon == null || icon.isBlank()) icon = defaultPresetIcon(name);
+        if (permission == null) permission = "";
+        boolean allowed = permission.isBlank() || player.hasPermission(permission);
+        return new HomePreset(name, displayName, icon, permission, enabled, allowed);
+    }
+
+    private HomePreset presetForOwnedHome(String home) {
+        if (!plugin.getConfig().getBoolean(
+                "integrations.essentials-home.use-display-names-on-owned-homes", true)) return null;
+        for (String preset : configuredPresetNames()) {
+            if (!preset.equalsIgnoreCase(home)) continue;
+            String base = "integrations.essentials-home.preset-details." + preset + ".";
+            String displayName = plugin.getConfig().getString(base + "display-name", prettyHomeName(preset));
+            String icon = plugin.getConfig().getString(base + "icon", defaultPresetIcon(preset));
+            boolean enabled = plugin.getConfig().getBoolean(base + "enabled", true);
+            return new HomePreset(preset,
+                    displayName == null || displayName.isBlank() ? prettyHomeName(preset) : displayName,
+                    icon == null || icon.isBlank() ? defaultPresetIcon(preset) : icon,
+                    "", enabled, true);
+        }
+        return null;
+    }
+
+    private boolean canUsePresetName(Player player, String name) {
+        for (String preset : configuredPresetNames()) {
+            if (!preset.equalsIgnoreCase(name)) continue;
+            String permission = plugin.getConfig().getString(
+                    "integrations.essentials-home.preset-details." + preset + ".permission", "");
+            return permission == null || permission.isBlank() || player.hasPermission(permission);
+        }
+        return true;
+    }
+
+    private String prettyHomeName(String name) {
+        if (name == null || name.isBlank()) return "Home";
+        return Character.toUpperCase(name.charAt(0)) + name.substring(1);
+    }
+
+    private String defaultPresetIcon(String name) {
+        return switch (name.toLowerCase(Locale.ROOT)) {
+            case "rumah", "home", "base" -> "textures/items/bed_red";
+            case "farm", "kebun" -> "textures/items/wheat";
+            case "tambang", "mine" -> "textures/items/iron_pickaxe";
+            case "shop", "toko" -> "textures/items/emerald";
+            default -> "textures/items/ender_pearl";
+        };
     }
 
     private List<String> sortedHomes(List<String> homes) {
@@ -676,6 +771,9 @@ public final class BedrockFormService {
     }
 
     private enum TradeAction { SEND, ACCEPT, DENY }
+
+    private record HomePreset(String name, String displayName, String icon, String permission,
+                              boolean enabled, boolean allowed) {}
 
     private record PlayerChoice(UUID uuid, String name) {}
 }

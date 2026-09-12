@@ -91,7 +91,7 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(memberBookService, this);
         memberBookService.giveToOnlinePlayers();
         memberBookService.startEnforcement();
-        getLogger().info("CdrMemberBook v1.5.2 enabled.");
+        getLogger().info("CdrMemberBook v1.5.3 enabled.");
     }
 
     @Override
@@ -177,8 +177,26 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
             getConfig().set("integrations.essentials-home.show-refresh-button", true);
         }
 
-        getConfig().set("config-version", 9);
+        if (configVersion < 10) {
+            getConfig().set("integrations.essentials-home.hide-locked-presets", true);
+            getConfig().set("integrations.essentials-home.use-display-names-on-owned-homes", true);
+            setPresetDefaults("rumah", "Rumah", "textures/items/bed_red");
+            setPresetDefaults("base", "Base", "textures/items/bed_red");
+            setPresetDefaults("farm", "Farm", "textures/items/wheat");
+            setPresetDefaults("tambang", "Tambang", "textures/items/iron_pickaxe");
+            setPresetDefaults("shop", "Shop", "textures/items/emerald");
+        }
+
+        getConfig().set("config-version", 10);
         saveConfig();
+    }
+
+    private void setPresetDefaults(String name, String displayName, String icon) {
+        String base = "integrations.essentials-home.preset-details." + name + ".";
+        if (!getConfig().isSet(base + "enabled")) getConfig().set(base + "enabled", true);
+        if (!getConfig().isSet(base + "display-name")) getConfig().set(base + "display-name", displayName);
+        if (!getConfig().isSet(base + "icon")) getConfig().set(base + "icon", icon);
+        if (!getConfig().isSet(base + "permission")) getConfig().set(base + "permission", "");
     }
 
     private void migrateSpecialButton(String key, String expectedCommand, String newType, String fallbackCommand) {

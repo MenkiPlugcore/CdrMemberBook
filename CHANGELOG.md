@@ -6,6 +6,20 @@
 - Plugin identity, Maven artifact, Java main class, dan Java package diganti menjadi CdrMemberBook.
 - Permission prefix lama `moonsignmenu.*` tetap dipertahankan sementara untuk kompatibilitas server yang sudah berjalan.
 
+## 1.5.3 — Home Manager Advanced
+
+- Added advanced per-preset metadata under `integrations.essentials-home.preset-details`.
+- Each preset now supports `enabled`, `display-name`, Bedrock `icon`, and optional `permission`.
+- Existing legacy `presets: [rumah, base, ...]` remains the canonical order/name list and stays backward compatible.
+- Set Home buttons use configured display names/icons while commands continue to use the canonical EssentialsX home name.
+- Teleport Home and Hapus Home can also show the configured display name/icon for matching owned homes without changing the underlying home id.
+- Presets without permission are hidden by default; `hide-locked-presets: false` shows them as `Terkunci` instead.
+- Restricted preset names cannot be bypassed through `Nama Custom`; permission is revalidated centrally before Set/Overwrite.
+- Preset permission only controls Set/Overwrite. Existing owned homes remain available for teleport/delete to avoid locking old player data.
+- Added automatic default icons for common preset names (`rumah/base`, `farm`, `tambang`, `shop`).
+- Config migration v9 -> v10 adds advanced metadata without removing existing preset lists.
+- Version bumped to `1.5.3`.
+
 ## 1.5.2 — Bedrock Menu QoL
 
 - Added configurable Member Book anti-double-open cooldown; default is 20 ticks (1 second) to prevent duplicate Bedrock forms from rapid/right-hand-offhand interactions.

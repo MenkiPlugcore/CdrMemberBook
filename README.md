@@ -1,4 +1,4 @@
-# CdrMemberBook v1.5.2
+# CdrMemberBook v1.5.3
 
 Standalone Paper plugin by **CADERA** untuk member menu Minecraft Java + Bedrock. Project ini dipisahkan dari monorepo `MenkiPlugcore/plugin` agar release, maintenance, issue, dan update berikutnya dapat dikelola langsung dari repository ini.
 
@@ -121,7 +121,9 @@ Permission: `moonsignmenu.admin.memberbook` (default OP).
 
 Gunakan `type: homes`. CdrMemberBook membaca data home dan limit langsung dari EssentialsX. Flow Bedrock bersifat click-first: `Teleport Home`, `Set Home`, `Hapus Home`, dan `Refresh Home`. Daftar home aktual otomatis muncul sebagai tombol, diurutkan alfabetis secara default, dan tidak mengharuskan player mengetik `/home`.
 
-`v1.5.2` juga menambahkan anti-double-open Member Book default 20 ticks (1 detik), state `BELUM ADA` untuk player tanpa home, serta feedback sukses setelah set/overwrite dan delete home.
+`v1.5.2` menambahkan anti-double-open Member Book default 20 ticks (1 detik), state `BELUM ADA` untuk player tanpa home, serta feedback sukses setelah set/overwrite dan delete home.
+
+`v1.5.3` menambahkan metadata advanced per preset: display name, icon Bedrock, enable/disable, dan permission. Permission preset hanya membatasi Set/Timpa; home yang sudah dimiliki tetap dapat diteleport atau dihapus.
 
 ```yaml
 integrations:
@@ -136,9 +138,22 @@ integrations:
       - tambang
       - shop
     allow-custom-name: true
+    hide-locked-presets: true
+    use-display-names-on-owned-homes: true
+    preset-details:
+      rumah:
+        enabled: true
+        display-name: 'Rumah'
+        icon: textures/items/bed_red
+        permission: ''
+      farm:
+        enabled: true
+        display-name: 'Farm'
+        icon: textures/items/wheat
+        permission: 'moonsign.home.farm'
 ```
 
-`Teleport Home` menampilkan home yang benar-benar dimiliki player. `Set Home` menampilkan tombol preset; preset yang sudah ada akan meminta konfirmasi sebelum ditimpa. `Nama Custom` dapat dimatikan dengan `allow-custom-name: false` jika server ingin 100% tombol tanpa input teks.
+`Teleport Home` menampilkan home yang benar-benar dimiliki player. `Set Home` menampilkan tombol preset; preset yang sudah ada akan meminta konfirmasi sebelum ditimpa. `Nama Custom` dapat dimatikan dengan `allow-custom-name: false` jika server ingin 100% tombol tanpa input teks. Jika sebuah preset diberi `permission`, player tanpa permission tidak dapat Set/Timpa nama tersebut bahkan melalui input custom.
 
 ```yaml
 sethome:
@@ -194,7 +209,7 @@ mvn clean package
 Output:
 
 ```text
-target/CdrMemberBook-1.5.2.jar
+target/CdrMemberBook-1.5.3.jar
 ```
 
 ## Migration
