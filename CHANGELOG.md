@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.9.8 - Report Center Java QoL
+
+- Added native Java Report Center search selector for reporter, target, or ANY lookup.
+- Added Anvil-based Java search input without requiring admin commands or chat interception.
+- Added native Java category filter with per-category report counts.
+- Added paginated Java custom result lists for Recent, Search, and Category views.
+- Preserved Search/Category/Recent context when opening report details, resolving/reopening/deleting, or returning to results.
+- Added native Java Staff Note input via Anvil with max-length validation and audit persistence.
+- Added category labels to Java report list rows and kept all report permission checks on every callback.
+- Config migrated to version 25 with Java Report Center search/note UI settings.
+
 ## 1.9.7 - Report Categories & Evidence
 
 - Added configurable report categories shared by Java and Bedrock native submit flows.

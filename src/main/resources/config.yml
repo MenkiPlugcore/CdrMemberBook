@@ -1,5 +1,5 @@
-# CdrMemberBook v1.9.7
-config-version: 24
+# CdrMemberBook v1.9.8
+config-version: 25
 prefix: '&8[&dCdrMemberBook&8] &r'
 
 teleport:
@@ -264,6 +264,12 @@ integrations:
       allow-delete: true
       show-recent: true
       show-search: true
+      show-category-filter: true
+      # Java staff QoL: search dan staff-note memakai Anvil UI native.
+      java-search-title: '&8Reports • Search'
+      java-search-placeholder: 'Ketik nama / UUID...'
+      java-note-title: '&8Report • Staff Note'
+      java-note-placeholder: 'Ketik catatan staff...'
       detail-note-limit: 3
       detail-audit-limit: 5
 
@@ -574,6 +580,8 @@ messages:
   report-cooldown: '&eTunggu &f%seconds%s &esebelum membuat laporan lagi.'
   report-duplicate: '&eKamu baru saja melaporkan player ini. Report sebelumnya: &f#%id%&e. Coba lagi dalam &f%seconds%s&e.'
   report-note-added: '&aCatatan staff ditambahkan ke report &f#%id%&a.'
+  report-note-too-long: '&eCatatan staff maksimal &f%max% &ekarakter.'
+  report-search-empty: '&eMasukkan nama atau UUID untuk mencari report.'
   cannot-report-self: '&cKamu tidak bisa melaporkan diri sendiri.'
   report-failed: '&cLaporan tidak dapat dikirim. Coba lagi atau hubungi staff.'
   report-not-found: '&cReport &f#%id% &ctidak ditemukan atau sudah dihapus.'

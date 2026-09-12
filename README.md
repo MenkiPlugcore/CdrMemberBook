@@ -1,4 +1,4 @@
-# CdrMemberBook v1.9.7
+# CdrMemberBook v1.9.8
 
 Standalone Paper plugin by **CADERA** for a configurable Minecraft Java + Bedrock member menu.
 
@@ -60,7 +60,7 @@ Java and Bedrock staff can view:
 - audit/history metadata
 - Resolve / Reopen / Delete actions
 
-Bedrock additionally has native search input and native staff-note input through Forms. Java search, note, and full audit lookup are also available through admin commands.
+Bedrock has native search and staff-note Forms. Java staff now also has native Anvil search, category filters, paginated search/category results, and native staff-note input directly from Report Center. Admin commands remain available as a fallback.
 
 ### Report commands
 

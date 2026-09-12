@@ -45,6 +45,10 @@ public final class JavaMenuService implements Listener {
     private static final String REPORT_REFRESH = "__report_refresh";
     private static final String REPORT_RECENT = "__report_recent";
     private static final String REPORT_SEARCH_HELP = "__report_search_help";
+    private static final String REPORT_CATEGORY_FILTER = "__report_category_filter";
+    private static final String REPORT_SEARCH_FIELD_PREFIX = "__report_search_field:";
+    private static final String REPORT_FILTER_CATEGORY_PREFIX = "__report_filter_category:";
+    private static final String REPORT_NOTE_ADD = "__report_note_add";
     private static final String REPORT_RESOLVE = "__report_resolve";
     private static final String REPORT_REOPEN = "__report_reopen";
     private static final String REPORT_DELETE = "__report_delete";
@@ -181,6 +185,11 @@ public final class JavaMenuService implements Listener {
             case REPORT_LIST -> handleReportListClick(player, holder, clicked);
             case REPORT_DETAIL -> handleReportDetailClick(player, holder, clicked);
             case REPORT_CONFIRM -> handleReportConfirmClick(player, holder, clicked);
+            case REPORT_SEARCH_TYPE -> handleReportSearchTypeClick(player, holder, clicked);
+            case REPORT_SEARCH_INPUT -> handleReportSearchInputClick(player, holder, event.getSlot());
+            case REPORT_CATEGORY_FILTER -> handleReportCategoryFilterClick(player, holder, clicked);
+            case REPORT_CUSTOM_LIST -> handleReportCustomListClick(player, holder, clicked);
+            case REPORT_NOTE_INPUT -> handleReportNoteInputClick(player, holder, event.getSlot());
             case REPORT_SUBMIT_CATEGORY -> handleReportSubmitCategoryClick(player, holder, clicked);
             case REPORT_SUBMIT_PLAYER -> handleReportSubmitPlayerClick(player, holder, clicked);
             case REPORT_SUBMIT_REASON -> handleReportReasonClick(player, holder, event.getSlot());
@@ -405,7 +414,10 @@ public final class JavaMenuService implements Listener {
     @EventHandler
     public void onPrepareReportAnvil(PrepareAnvilEvent event) {
         if (!(event.getInventory().getHolder() instanceof MenuHolder holder)) return;
-        if (holder.type() != MenuHolder.Type.REPORT_SUBMIT_REASON && holder.type() != MenuHolder.Type.REPORT_SUBMIT_EVIDENCE) return;
+        if (holder.type() != MenuHolder.Type.REPORT_SUBMIT_REASON
+                && holder.type() != MenuHolder.Type.REPORT_SUBMIT_EVIDENCE
+                && holder.type() != MenuHolder.Type.REPORT_SEARCH_INPUT
+                && holder.type() != MenuHolder.Type.REPORT_NOTE_INPUT) return;
         AnvilInventory inventory = event.getInventory();
         inventory.setRepairCost(0);
         String value = inventory.getRenameText();
@@ -413,7 +425,7 @@ public final class JavaMenuService implements Listener {
         if (input == null || input.getType().isAir()) return;
         ItemStack result = input.clone();
         ItemMeta meta = result.getItemMeta();
-        String fallback = holder.type() == MenuHolder.Type.REPORT_SUBMIT_REASON ? reportReasonPlaceholder() : reportEvidencePlaceholder();
+        String fallback = reportAnvilPlaceholder(holder.type());
         String display = value == null || value.isBlank() ? fallback : value.trim();
         meta.setDisplayName(Colors.legacy("&f" + shorten(display, 48)));
         result.setItemMeta(meta);
@@ -502,6 +514,26 @@ public final class JavaMenuService implements Listener {
         else plugin.message(player, "report-evidence-invalid-link");
     }
 
+    private String reportAnvilPlaceholder(MenuHolder.Type type) {
+        return switch (type) {
+            case REPORT_SUBMIT_REASON -> reportReasonPlaceholder();
+            case REPORT_SUBMIT_EVIDENCE -> reportEvidencePlaceholder();
+            case REPORT_SEARCH_INPUT -> reportSearchPlaceholder();
+            case REPORT_NOTE_INPUT -> reportNotePlaceholder();
+            default -> "Ketik...";
+        };
+    }
+
+    private String reportSearchPlaceholder() {
+        String value = plugin.getConfig().getString("integrations.report.center.java-search-placeholder", "Ketik nama / UUID...");
+        return value == null || value.isBlank() ? "Ketik nama / UUID..." : value.trim();
+    }
+
+    private String reportNotePlaceholder() {
+        String value = plugin.getConfig().getString("integrations.report.center.java-note-placeholder", "Ketik catatan staff...");
+        return value == null || value.isBlank() ? "Ketik catatan staff..." : value.trim();
+    }
+
     private String reportReasonPlaceholder() {
         String value = plugin.getConfig().getString("integrations.report.java-submit.reason-placeholder", "Ketik alasan laporan...");
         return value == null || value.isBlank() ? "Ketik alasan laporan..." : value.trim();
@@ -566,32 +598,19 @@ public final class JavaMenuService implements Listener {
         }
         if (plugin.getConfig().getBoolean("integrations.report.center.show-search", true)) {
             inventory.setItem(22, navigationItem(Material.NAME_TAG, "&bCari Report", REPORT_SEARCH_HELP,
-                    "&7Gunakan command search:\n&f/cdrmemberbook reports search <reporter|target|any> <nama>"));
+                    "&7Cari reporter / target langsung dari GUI."));
+        }
+        if (plugin.getConfig().getBoolean("integrations.report.center.show-category-filter", true)
+                && plugin.reports().categoriesEnabled()) {
+            inventory.setItem(24, navigationItem(Material.HOPPER, "&eFilter Kategori", REPORT_CATEGORY_FILTER,
+                    "&7Filter report berdasarkan kategori."));
         }
         inventory.setItem(31, navigationItem(Material.OAK_DOOR, "&eKembali", NAV_BACK, "&7Kembali ke Member Menu."));
         player.openInventory(inventory);
     }
 
     private void showRecentReportList(Player player, String returnMenuId) {
-        if (!ensureReportStaff(player, returnMenuId)) return;
-        int limit = Math.max(1, Math.min(PAGE_SIZE, plugin.getConfig().getInt("integrations.report.recent-limit", 10)));
-        List<ReportService.ReportEntry> entries = plugin.reports().recent(limit, null);
-        MenuHolder holder = new MenuHolder(MenuHolder.Type.REPORT_LIST, null, returnMenuId, 0,
-                "ALL", 0, 54, "§8Reports §7• §eRecent");
-        Inventory inventory = holder.getInventory();
-        decorateFrame(inventory, player, 0, 1, "Recent Reports");
-        int slotIndex = 0;
-        for (ReportService.ReportEntry entry : entries) {
-            Material material = entry.status() == ReportService.Status.OPEN ? Material.WRITABLE_BOOK : Material.WRITTEN_BOOK;
-            ItemStack item = item(material, (entry.status() == ReportService.Status.OPEN ? "&c" : "&a") + "Report #" + entry.id() + " &8• &f" + entry.targetName(), List.of(
-                    "&7Reporter: &f" + entry.reporterName(), "&7Status: &f" + entry.status(), "&7Alasan: &f" + shorten(entry.reason(), 42), "", "&8» &fKlik untuk detail."));
-            ItemMeta meta = item.getItemMeta();
-            meta.getPersistentDataContainer().set(plugin.buttonKey(), PersistentDataType.STRING, REPORT_PREFIX + entry.id());
-            item.setItemMeta(meta);
-            inventory.setItem(CONTENT_SLOTS[slotIndex++], item);
-        }
-        inventory.setItem(49, navigationItem(Material.OAK_DOOR, "&eReport Center", NAV_BACK, "&7Kembali ke Report Center."));
-        player.openInventory(inventory);
+        showReportCustomList(player, returnMenuId, "RECENT", 0);
     }
 
     private void handleReportCenterClick(Player player, MenuHolder holder, ItemStack clicked) {
@@ -601,12 +620,202 @@ public final class JavaMenuService implements Listener {
         else if (REPORT_RESOLVED.equals(action)) showReportList(player, holder.menuId(), ReportService.Status.RESOLVED, 0);
         else if (REPORT_ALL.equals(action)) showReportList(player, holder.menuId(), null, 0);
         else if (REPORT_RECENT.equals(action)) showRecentReportList(player, holder.menuId());
-        else if (REPORT_SEARCH_HELP.equals(action)) {
-            player.closeInventory();
-            player.sendMessage(Colors.legacy("&bCari report: &f/cdrmemberbook reports search <reporter|target|any> <nama> [open|resolved|all]"));
-        }
+        else if (REPORT_SEARCH_HELP.equals(action)) showReportSearchType(player, holder.menuId());
+        else if (REPORT_CATEGORY_FILTER.equals(action)) showReportCategoryFilter(player, holder.menuId());
         else if (REPORT_REFRESH.equals(action)) showReportCenter(player, holder.menuId());
         else if (NAV_BACK.equals(action)) showConfiguredMenu(player, holder.menuId(), 0);
+    }
+
+    private void showReportSearchType(Player player, String returnMenuId) {
+        if (!ensureReportStaff(player, returnMenuId)) return;
+        MenuHolder holder = new MenuHolder(MenuHolder.Type.REPORT_SEARCH_TYPE, null, returnMenuId, 0, 27,
+                "§8Reports §7• §bSearch");
+        Inventory inventory = holder.getInventory();
+        fillAll(inventory, filler(Material.BLACK_STAINED_GLASS_PANE));
+        inventory.setItem(11, navigationItem(Material.PLAYER_HEAD, "&bCari Reporter",
+                REPORT_SEARCH_FIELD_PREFIX + ReportService.SearchField.REPORTER.name(), "&7Cari report berdasarkan pengirim laporan."));
+        inventory.setItem(13, navigationItem(Material.TARGET, "&cCari Target",
+                REPORT_SEARCH_FIELD_PREFIX + ReportService.SearchField.TARGET.name(), "&7Cari report berdasarkan player yang dilaporkan."));
+        inventory.setItem(15, navigationItem(Material.COMPASS, "&fCari Keduanya",
+                REPORT_SEARCH_FIELD_PREFIX + ReportService.SearchField.ANY.name(), "&7Cari reporter, target, kategori, atau evidence."));
+        inventory.setItem(22, navigationItem(Material.OAK_DOOR, "&eKembali", NAV_BACK, "&7Kembali ke Report Center."));
+        player.openInventory(inventory);
+    }
+
+    private void handleReportSearchTypeClick(Player player, MenuHolder holder, ItemStack clicked) {
+        if (!ensureReportStaff(player, holder.menuId())) return;
+        String action = action(clicked);
+        if (NAV_BACK.equals(action)) { showReportCenter(player, holder.menuId()); return; }
+        if (action == null || !action.startsWith(REPORT_SEARCH_FIELD_PREFIX)) return;
+        try {
+            ReportService.SearchField field = ReportService.SearchField.valueOf(action.substring(REPORT_SEARCH_FIELD_PREFIX.length()));
+            showReportSearchInput(player, holder.menuId(), field);
+        } catch (IllegalArgumentException ignored) { showReportSearchType(player, holder.menuId()); }
+    }
+
+    private void showReportSearchInput(Player player, String returnMenuId, ReportService.SearchField field) {
+        if (!ensureReportStaff(player, returnMenuId)) return;
+        String rawTitle = plugin.getConfig().getString("integrations.report.center.java-search-title", "&8Reports • Search");
+        MenuHolder holder = new MenuHolder(MenuHolder.Type.REPORT_SEARCH_INPUT, null, returnMenuId, 0,
+                field.name(), 0, InventoryType.ANVIL, trimTitle(Colors.legacy(rawTitle == null ? "&8Reports • Search" : rawTitle)));
+        AnvilInventory inventory = (AnvilInventory) holder.getInventory();
+        inventory.setItem(0, item(Material.NAME_TAG, "&f" + reportSearchPlaceholder(), List.of(
+                "&7Mode: &f" + field.name(),
+                "&7Ketik nama atau UUID player.",
+                "&7ANY juga dapat mencari kategori/evidence.",
+                "",
+                "&8Klik hasil di kanan untuk mencari."
+        )));
+        inventory.setRepairCost(0);
+        player.openInventory(inventory);
+    }
+
+    private void handleReportSearchInputClick(Player player, MenuHolder holder, int slot) {
+        if (!ensureReportStaff(player, holder.menuId())) return;
+        if (slot != 2 || !(holder.getInventory() instanceof AnvilInventory inventory)) return;
+        ReportService.SearchField field;
+        try { field = ReportService.SearchField.valueOf(holder.context()); }
+        catch (IllegalArgumentException ignored) { showReportSearchType(player, holder.menuId()); return; }
+        String query = inventory.getRenameText();
+        if (query == null) query = "";
+        query = query.trim();
+        if (query.equalsIgnoreCase(reportSearchPlaceholder())) query = "";
+        query = query.replace("|", "").trim();
+        if (query.isBlank()) {
+            plugin.message(player, "report-search-empty");
+            showReportSearchInput(player, holder.menuId(), field);
+            return;
+        }
+        if (query.length() > 64) query = query.substring(0, 64).trim();
+        showReportCustomList(player, holder.menuId(), "SEARCH|" + field.name() + "|" + query, 0);
+    }
+
+    private void showReportCategoryFilter(Player player, String returnMenuId) {
+        if (!ensureReportStaff(player, returnMenuId)) return;
+        if (!plugin.reports().categoriesEnabled()) { showReportCenter(player, returnMenuId); return; }
+        MenuHolder holder = new MenuHolder(MenuHolder.Type.REPORT_CATEGORY_FILTER, null, returnMenuId, 0, 54,
+                "§8Reports §7• §eKategori");
+        Inventory inventory = holder.getInventory();
+        decorateFrame(inventory, player, 0, 1, "Filter Kategori");
+        int slotIndex = 0;
+        for (String category : plugin.reports().categories()) {
+            if (slotIndex >= CONTENT_SLOTS.length) break;
+            int count = plugin.reports().listByCategory(category, null).size();
+            inventory.setItem(CONTENT_SLOTS[slotIndex++], navigationItem(Material.BOOK,
+                    "&e" + plugin.reports().categoryLabel(category) + " &7(" + count + ")",
+                    REPORT_FILTER_CATEGORY_PREFIX + category,
+                    "&7Kategori: &f" + category + "\n&7Total: &f" + count + "\n\n&8» &fKlik untuk filter."));
+        }
+        inventory.setItem(49, navigationItem(Material.OAK_DOOR, "&eReport Center", NAV_BACK, "&7Kembali ke Report Center."));
+        player.openInventory(inventory);
+    }
+
+    private void handleReportCategoryFilterClick(Player player, MenuHolder holder, ItemStack clicked) {
+        if (!ensureReportStaff(player, holder.menuId())) return;
+        String action = action(clicked);
+        if (NAV_BACK.equals(action)) { showReportCenter(player, holder.menuId()); return; }
+        if (action == null || !action.startsWith(REPORT_FILTER_CATEGORY_PREFIX)) return;
+        String category = plugin.reports().normalizeCategory(action.substring(REPORT_FILTER_CATEGORY_PREFIX.length()));
+        if (!plugin.reports().categories().contains(category)) { showReportCategoryFilter(player, holder.menuId()); return; }
+        showReportCustomList(player, holder.menuId(), "CATEGORY|" + category, 0);
+    }
+
+    private void showReportCustomList(Player player, String returnMenuId, String context, int requestedPage) {
+        if (!ensureReportStaff(player, returnMenuId)) return;
+        List<ReportService.ReportEntry> entries = customReportEntries(context);
+        int configured = Math.max(1, plugin.getConfig().getInt("integrations.report.center.page-size", 8));
+        int pageSize = Math.min(PAGE_SIZE, configured);
+        int totalPages = Math.max(1, (entries.size() + pageSize - 1) / pageSize);
+        int page = Math.max(0, Math.min(requestedPage, totalPages - 1));
+        int start = page * pageSize;
+        int end = Math.min(entries.size(), start + pageSize);
+        String label = listContextLabel(context);
+
+        MenuHolder holder = new MenuHolder(MenuHolder.Type.REPORT_CUSTOM_LIST, null, returnMenuId, page,
+                context, 0, 54, trimTitle("§8Reports §7• §f" + label));
+        Inventory inventory = holder.getInventory();
+        decorateFrame(inventory, player, page, totalPages, label);
+        int slotIndex = 0;
+        for (int i = start; i < end; i++) {
+            ReportService.ReportEntry entry = entries.get(i);
+            Material material = entry.status() == ReportService.Status.OPEN ? Material.WRITABLE_BOOK : Material.WRITTEN_BOOK;
+            ItemStack reportItem = item(material,
+                    (entry.status() == ReportService.Status.OPEN ? "&c" : "&a") + "Report #" + entry.id() + " &8• &f" + entry.targetName(),
+                    List.of(
+                            "&7Kategori: &f" + plugin.reports().categoryLabel(entry.category()),
+                            "&7Reporter: &f" + entry.reporterName(),
+                            "&7Status: &f" + entry.status(),
+                            "&7Alasan: &f" + shorten(entry.reason(), 42),
+                            "",
+                            "&8» &fKlik untuk detail."
+                    ));
+            ItemMeta meta = reportItem.getItemMeta();
+            meta.getPersistentDataContainer().set(plugin.buttonKey(), PersistentDataType.STRING, REPORT_PREFIX + entry.id());
+            reportItem.setItemMeta(meta);
+            inventory.setItem(CONTENT_SLOTS[slotIndex++], reportItem);
+        }
+        if (entries.isEmpty()) inventory.setItem(22, item(Material.PAPER, "&7Tidak ada hasil", List.of("&8Tidak ada report yang cocok.")));
+        if (page > 0) inventory.setItem(45, navigationItem(Material.ARROW, "&eHalaman Sebelumnya", NAV_PREVIOUS, "&7Lihat hasil sebelumnya."));
+        inventory.setItem(49, navigationItem(Material.OAK_DOOR, "&eReport Center", NAV_BACK, "&7Kembali ke Report Center."));
+        if (page < totalPages - 1) inventory.setItem(53, navigationItem(Material.ARROW, "&eHalaman Berikutnya", NAV_NEXT, "&7Lihat hasil berikutnya."));
+        player.openInventory(inventory);
+    }
+
+    private void handleReportCustomListClick(Player player, MenuHolder holder, ItemStack clicked) {
+        if (!ensureReportStaff(player, holder.menuId())) return;
+        String action = action(clicked);
+        if (action == null) return;
+        if (NAV_PREVIOUS.equals(action)) { showReportCustomList(player, holder.menuId(), holder.context(), holder.page() - 1); return; }
+        if (NAV_NEXT.equals(action)) { showReportCustomList(player, holder.menuId(), holder.context(), holder.page() + 1); return; }
+        if (NAV_BACK.equals(action)) { showReportCenter(player, holder.menuId()); return; }
+        if (action.startsWith(REPORT_PREFIX)) {
+            try { showReportDetail(player, holder.menuId(), holder.context(), holder.page(), Integer.parseInt(action.substring(REPORT_PREFIX.length()))); }
+            catch (NumberFormatException ignored) { }
+        }
+    }
+
+    private List<ReportService.ReportEntry> customReportEntries(String context) {
+        if (context == null || context.isBlank()) return List.of();
+        if (context.equals("RECENT")) {
+            int limit = Math.max(1, Math.min(100, plugin.getConfig().getInt("integrations.report.recent-limit", 10)));
+            return plugin.reports().recent(limit, null);
+        }
+        if (context.startsWith("CATEGORY|")) {
+            return plugin.reports().listByCategory(context.substring("CATEGORY|".length()), null);
+        }
+        if (context.startsWith("SEARCH|")) {
+            String[] parts = context.split("\\|", 3);
+            if (parts.length < 3) return List.of();
+            try {
+                return plugin.reports().search(parts[2], ReportService.SearchField.valueOf(parts[1]), null);
+            } catch (IllegalArgumentException ignored) { return List.of(); }
+        }
+        return List.of();
+    }
+
+    private String statusContext(ReportService.Status filter) {
+        return "STATUS|" + (filter == null ? "ALL" : filter.name());
+    }
+
+    private String listContextLabel(String context) {
+        if (context == null || context.isBlank()) return "ALL";
+        if (context.startsWith("STATUS|")) return context.substring("STATUS|".length());
+        if (context.equals("RECENT")) return "Recent";
+        if (context.startsWith("CATEGORY|")) return plugin.reports().categoryLabel(context.substring("CATEGORY|".length()));
+        if (context.startsWith("SEARCH|")) {
+            String[] parts = context.split("\\|", 3);
+            return parts.length >= 3 ? "Search " + parts[2] : "Search";
+        }
+        return "Reports";
+    }
+
+    private void showReportListContext(Player player, String returnMenuId, String context, int page) {
+        if (context != null && (context.equals("RECENT") || context.startsWith("CATEGORY|") || context.startsWith("SEARCH|"))) {
+            showReportCustomList(player, returnMenuId, context, page);
+            return;
+        }
+        String raw = context != null && context.startsWith("STATUS|") ? context.substring("STATUS|".length()) : context;
+        showReportList(player, returnMenuId, parseFilter(raw), page);
     }
 
     private void showReportList(Player player, String returnMenuId, ReportService.Status filter, int requestedPage) {
@@ -633,6 +842,7 @@ public final class JavaMenuService implements Listener {
             ItemStack item = item(material, name, List.of(
                     "&7Reporter: &f" + entry.reporterName(),
                     "&7Target: &f" + entry.targetName(),
+                    "&7Kategori: &f" + plugin.reports().categoryLabel(entry.category()),
                     "&7Status: &f" + entry.status(),
                     "&7Alasan: &f" + shorten(entry.reason(), 42),
                     "",
@@ -666,16 +876,19 @@ public final class JavaMenuService implements Listener {
     }
 
     private void showReportDetail(Player player, String returnMenuId, ReportService.Status filter, int page, int reportId) {
+        showReportDetail(player, returnMenuId, statusContext(filter), page, reportId);
+    }
+
+    private void showReportDetail(Player player, String returnMenuId, String listContext, int page, int reportId) {
         if (!ensureReportStaff(player, returnMenuId)) return;
         ReportService.ReportEntry entry = plugin.reports().get(reportId);
         if (entry == null) {
             plugin.message(player, "report-not-found", "%id%", Integer.toString(reportId));
-            showReportList(player, returnMenuId, filter, page);
+            showReportListContext(player, returnMenuId, listContext, page);
             return;
         }
-        String filterName = filter == null ? "ALL" : filter.name();
         MenuHolder holder = new MenuHolder(MenuHolder.Type.REPORT_DETAIL, null, returnMenuId, page,
-                filterName, reportId, 27, trimTitle("§8Report §7• §f#" + reportId));
+                listContext, reportId, 27, trimTitle("§8Report §7• §f#" + reportId));
         Inventory inventory = holder.getInventory();
         fillAll(inventory, filler(Material.BLACK_STAINED_GLASS_PANE));
 
@@ -714,37 +927,80 @@ public final class JavaMenuService implements Listener {
         if (plugin.getConfig().getBoolean("integrations.report.center.allow-delete", true)) {
             inventory.setItem(16, navigationItem(Material.BARRIER, "&cHapus Report", REPORT_DELETE, "&7Hapus laporan ini permanen."));
         }
-        inventory.setItem(22, item(Material.PAPER, "&eStaff Note / Audit", List.of(
-                "&7Tambah note lewat command:",
-                "&f/cdrmemberbook report note " + reportId + " <catatan>",
-                "",
-                "&7Lihat audit:",
-                "&f/cdrmemberbook report audit " + reportId
-        )));
+        inventory.setItem(22, navigationItem(Material.PAPER, "&eTambah Staff Note", REPORT_NOTE_ADD,
+                "&7Klik untuk menambah catatan staff via Anvil UI.\n&8Audit tetap tersimpan otomatis."));
         player.openInventory(inventory);
     }
 
     private void handleReportDetailClick(Player player, MenuHolder holder, ItemStack clicked) {
         if (!ensureReportStaff(player, holder.menuId())) return;
         String action = action(clicked);
-        ReportService.Status filter = parseFilter(holder.context());
-        if (NAV_BACK.equals(action)) { showReportList(player, holder.menuId(), filter, holder.page()); return; }
-        if (REPORT_RESOLVE.equals(action)) showReportConfirm(player, holder.menuId(), filter, holder.page(), holder.value(), "resolve");
-        else if (REPORT_REOPEN.equals(action)) showReportConfirm(player, holder.menuId(), filter, holder.page(), holder.value(), "reopen");
-        else if (REPORT_DELETE.equals(action)) showReportConfirm(player, holder.menuId(), filter, holder.page(), holder.value(), "delete");
+        String listContext = holder.context();
+        if (NAV_BACK.equals(action)) { showReportListContext(player, holder.menuId(), listContext, holder.page()); return; }
+        if (REPORT_RESOLVE.equals(action)) showReportConfirm(player, holder.menuId(), listContext, holder.page(), holder.value(), "resolve");
+        else if (REPORT_REOPEN.equals(action)) showReportConfirm(player, holder.menuId(), listContext, holder.page(), holder.value(), "reopen");
+        else if (REPORT_DELETE.equals(action)) showReportConfirm(player, holder.menuId(), listContext, holder.page(), holder.value(), "delete");
+        else if (REPORT_NOTE_ADD.equals(action)) showReportNoteInput(player, holder.menuId(), listContext, holder.page(), holder.value());
     }
 
-    private void showReportConfirm(Player player, String returnMenuId, ReportService.Status filter, int page,
+    private void showReportNoteInput(Player player, String returnMenuId, String listContext, int page, int reportId) {
+        if (!ensureReportStaff(player, returnMenuId)) return;
+        if (plugin.reports().get(reportId) == null) {
+            plugin.message(player, "report-not-found", "%id%", Integer.toString(reportId));
+            showReportListContext(player, returnMenuId, listContext, page);
+            return;
+        }
+        String rawTitle = plugin.getConfig().getString("integrations.report.center.java-note-title", "&8Report • Staff Note");
+        MenuHolder holder = new MenuHolder(MenuHolder.Type.REPORT_NOTE_INPUT, null, returnMenuId, page,
+                listContext, reportId, InventoryType.ANVIL, trimTitle(Colors.legacy(rawTitle == null ? "&8Report • Staff Note" : rawTitle)));
+        AnvilInventory inventory = (AnvilInventory) holder.getInventory();
+        inventory.setItem(0, item(Material.PAPER, "&f" + reportNotePlaceholder(), List.of(
+                "&7Report: &f#" + reportId,
+                "&7Ketik catatan internal staff.",
+                "&7Catatan masuk ke audit report.",
+                "",
+                "&8Klik hasil di kanan untuk simpan."
+        )));
+        inventory.setRepairCost(0);
+        player.openInventory(inventory);
+    }
+
+    private void handleReportNoteInputClick(Player player, MenuHolder holder, int slot) {
+        if (!ensureReportStaff(player, holder.menuId())) return;
+        if (slot != 2 || !(holder.getInventory() instanceof AnvilInventory inventory)) return;
+        String note = inventory.getRenameText();
+        if (note == null) note = "";
+        note = note.trim();
+        if (note.equalsIgnoreCase(reportNotePlaceholder())) note = "";
+        if (note.isBlank()) {
+            showReportDetail(player, holder.menuId(), holder.context(), holder.page(), holder.value());
+            return;
+        }
+        int max = Math.max(10, plugin.getConfig().getInt("integrations.report.audit.max-note-length", 240));
+        if (note.length() > max) {
+            plugin.message(player, "report-note-too-long", "%max%", Integer.toString(max));
+            showReportNoteInput(player, holder.menuId(), holder.context(), holder.page(), holder.value());
+            return;
+        }
+        if (!plugin.reports().addNote(holder.value(), player.getName(), note)) {
+            plugin.message(player, "report-action-failed");
+            showReportDetail(player, holder.menuId(), holder.context(), holder.page(), holder.value());
+            return;
+        }
+        plugin.message(player, "report-note-added", "%id%", Integer.toString(holder.value()));
+        showReportDetail(player, holder.menuId(), holder.context(), holder.page(), holder.value());
+    }
+
+    private void showReportConfirm(Player player, String returnMenuId, String listContext, int page,
                                    int reportId, String operation) {
         if (!ensureReportStaff(player, returnMenuId)) return;
         if (plugin.reports().get(reportId) == null) {
             plugin.message(player, "report-not-found", "%id%", Integer.toString(reportId));
-            showReportList(player, returnMenuId, filter, page);
+            showReportListContext(player, returnMenuId, listContext, page);
             return;
         }
-        String filterName = filter == null ? "ALL" : filter.name();
         MenuHolder holder = new MenuHolder(MenuHolder.Type.REPORT_CONFIRM, null, returnMenuId, page,
-                operation + "|" + filterName, reportId, 27, "§8Konfirmasi Report");
+                operation + "\n" + listContext, reportId, 27, "§8Konfirmasi Report");
         Inventory inventory = holder.getInventory();
         fillAll(inventory, filler(Material.BLACK_STAINED_GLASS_PANE));
         String label = switch (operation) {
@@ -763,11 +1019,11 @@ public final class JavaMenuService implements Listener {
     private void handleReportConfirmClick(Player player, MenuHolder holder, ItemStack clicked) {
         if (!ensureReportStaff(player, holder.menuId())) return;
         String action = action(clicked);
-        String[] parts = holder.context().split("\\|", 2);
+        String[] parts = holder.context().split("\\n", 2);
         String operation = parts.length > 0 ? parts[0] : "";
-        ReportService.Status filter = parts.length > 1 ? parseFilter(parts[1]) : null;
+        String listContext = parts.length > 1 ? parts[1] : statusContext(null);
         if (REPORT_CANCEL.equals(action)) {
-            showReportDetail(player, holder.menuId(), filter, holder.page(), holder.value());
+            showReportDetail(player, holder.menuId(), listContext, holder.page(), holder.value());
             return;
         }
         if (!REPORT_CONFIRM.equals(action)) return;
@@ -779,7 +1035,7 @@ public final class JavaMenuService implements Listener {
         };
         if (!success) {
             plugin.message(player, "report-action-failed");
-            showReportList(player, holder.menuId(), filter, holder.page());
+            showReportListContext(player, holder.menuId(), listContext, holder.page());
             return;
         }
         switch (operation) {
@@ -788,8 +1044,8 @@ public final class JavaMenuService implements Listener {
             case "delete" -> plugin.message(player, "report-deleted", "%id%", Integer.toString(holder.value()));
             default -> { }
         }
-        if (operation.equals("delete")) showReportList(player, holder.menuId(), filter, holder.page());
-        else showReportDetail(player, holder.menuId(), filter, holder.page(), holder.value());
+        if (operation.equals("delete")) showReportListContext(player, holder.menuId(), listContext, holder.page());
+        else showReportDetail(player, holder.menuId(), listContext, holder.page(), holder.value());
     }
 
     private ReportService.Status parseFilter(String raw) {

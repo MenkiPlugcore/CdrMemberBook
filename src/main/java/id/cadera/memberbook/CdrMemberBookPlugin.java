@@ -313,7 +313,15 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
             getConfig().set("integrations.report.java-submit.evidence-placeholder", "Evidence opsional...");
         }
 
-        getConfig().set("config-version", 24);
+        if (configVersion < 25) {
+            getConfig().set("integrations.report.center.show-category-filter", true);
+            getConfig().set("integrations.report.center.java-search-title", "&8Reports • Search");
+            getConfig().set("integrations.report.center.java-search-placeholder", "Ketik nama / UUID...");
+            getConfig().set("integrations.report.center.java-note-title", "&8Report • Staff Note");
+            getConfig().set("integrations.report.center.java-note-placeholder", "Ketik catatan staff...");
+        }
+
+        getConfig().set("config-version", 25);
         saveConfig();
     }
 
