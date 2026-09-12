@@ -1,5 +1,5 @@
-# CdrMemberBook v1.3.1
-config-version: 3
+# CdrMemberBook v1.3.2
+config-version: 4
 prefix: '&8[&dMOONSIGN&8] &r'
 
 teleport:
@@ -28,15 +28,20 @@ bedrock-icons:
   trade-deny: textures/items/barrier
 
 # Member Book automatically opens the member menu on right click.
-# Default v1.3.1: khusus Bedrock dan slot hotbar paling kanan (index 8) dikunci untuk buku.
+# Default v1.3.2: buku bebas dipindahkan di inventory player sendiri,
+# tetapi tidak bisa disimpan ke chest, ender chest, PlayerVaults, shulker,
+# plugin GUI, atau inventory lain di luar inventory player.
 member-book:
   enabled: true
   bedrock-only: true
   give-on-join: true
   give-delay-ticks: 10
-  permanent-hotbar: true
-  prevent-move: true
+  permanent-hotbar: false
+  # Legacy compatibility option. v1.3.2 tidak lagi mengunci perpindahan internal.
+  prevent-move: false
+  prevent-external-storage: true
   enforce-interval-ticks: 20
+  # Slot awal saat buku pertama kali diberikan jika slot ini kosong.
   hotbar-slot: 8
   prevent-drop: true
   material: BOOK
@@ -314,6 +319,7 @@ messages:
   invalid-button-type: '&cTipe tombol &f%type% &ctidak dikenali.'
   config-reloaded: '&aConfig CdrMemberBook berhasil direload.'
   member-book-cannot-drop: '&eMember Book tidak dapat dibuang.'
+  member-book-external-storage-blocked: '&eMember Book hanya boleh disimpan di inventory kamu sendiri.'
   member-book-inventory-full: '&eInventory penuh. Kosongkan satu slot agar Member Book bisa diberikan.'
   home-integration-unavailable: '&cHome Manager membutuhkan EssentialsX yang aktif.'
   home-limit-reached: '&eSlot home penuh: &f%used%/%max%&e.'
