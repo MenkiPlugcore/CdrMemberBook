@@ -1,5 +1,5 @@
-# CdrMemberBook v1.9.6
-config-version: 23
+# CdrMemberBook v1.9.7
+config-version: 24
 prefix: '&8[&dCdrMemberBook&8] &r'
 
 teleport:
@@ -231,6 +231,22 @@ integrations:
       max-history: 50
       max-notes: 20
       max-note-length: 240
+    categories:
+      enabled: true
+      values: [CHEATING, GRIEFING, TOXIC, SCAM, BUG_ABUSE, OTHER]
+      labels:
+        CHEATING: 'Cheating / Hack'
+        GRIEFING: 'Griefing'
+        TOXIC: 'Toxic / Harassment'
+        SCAM: 'Scam'
+        BUG_ABUSE: 'Bug Abuse'
+        OTHER: 'Lainnya'
+    evidence:
+      enabled: true
+      optional: true
+      max-length: 300
+      require-http-url-if-link: true
+
     # Native Java player report submit. Tidak membutuhkan plugin /report eksternal.
     java-submit:
       enabled: true
@@ -238,6 +254,8 @@ integrations:
       reason-title: '&8Lapor • Alasan'
       reason-placeholder: 'Ketik alasan laporan...'
       reason-material: PAPER
+      evidence-title: '&8Lapor • Evidence'
+      evidence-placeholder: 'Evidence opsional...'
 
     # Native Java + Bedrock staff Report Center.
     center:
@@ -549,6 +567,9 @@ messages:
   feature-unavailable: '&eFitur ini sedang tidak tersedia karena plugin/command yang dibutuhkan tidak aktif.'
   report-reason-too-short: '&eAlasan laporan minimal &f%min% &ekarakter.'
   report-reason-too-long: '&eAlasan laporan maksimal &f%max% &ekarakter.'
+  report-evidence-required: '&eEvidence wajib diisi untuk laporan ini.'
+  report-evidence-too-long: '&eEvidence maksimal &f%max% &ekarakter.'
+  report-evidence-invalid-link: '&cLink evidence hanya boleh memakai http:// atau https://.'
   report-sent: '&aLaporan &f#%id% &auntuk &f%player% &aberhasil dikirim ke staff.'
   report-cooldown: '&eTunggu &f%seconds%s &esebelum membuat laporan lagi.'
   report-duplicate: '&eKamu baru saja melaporkan player ini. Report sebelumnya: &f#%id%&e. Coba lagi dalam &f%seconds%s&e.'

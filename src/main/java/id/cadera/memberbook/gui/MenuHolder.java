@@ -17,8 +17,10 @@ public final class MenuHolder implements InventoryHolder {
         REPORT_LIST,
         REPORT_DETAIL,
         REPORT_CONFIRM,
+        REPORT_SUBMIT_CATEGORY,
         REPORT_SUBMIT_PLAYER,
         REPORT_SUBMIT_REASON,
+        REPORT_SUBMIT_EVIDENCE,
         REPORT_SUBMIT_CONFIRM
     }
 
@@ -36,12 +38,17 @@ public final class MenuHolder implements InventoryHolder {
 
     public MenuHolder(Type type, UUID targetId, String menuId, int page,
                       InventoryType inventoryType, String title) {
+        this(type, targetId, menuId, page, "", 0, inventoryType, title);
+    }
+
+    public MenuHolder(Type type, UUID targetId, String menuId, int page, String context, int value,
+                      InventoryType inventoryType, String title) {
         this.type = type;
         this.targetId = targetId;
         this.menuId = menuId == null ? "main" : menuId;
         this.page = Math.max(0, page);
-        this.context = "";
-        this.value = 0;
+        this.context = context == null ? "" : context;
+        this.value = value;
         this.inventory = Bukkit.createInventory(this, inventoryType, title);
     }
 

@@ -1,4 +1,4 @@
-# CdrMemberBook v1.9.6
+# CdrMemberBook v1.9.7
 
 Standalone Paper plugin by **CADERA** for a configurable Minecraft Java + Bedrock member menu.
 
@@ -233,3 +233,7 @@ integrations:
 ```
 
 Menutup Anvil dengan ESC membatalkan input tanpa menyimpan report. Target yang logout di tengah flow akan ditolak aman dan player dikembalikan ke picker.
+
+## Report Categories & Evidence v1.9.7
+
+Native Java + Bedrock report sekarang memakai flow kategori -> target -> alasan -> evidence opsional -> konfirmasi. Default kategori: CHEATING, GRIEFING, TOXIC, SCAM, BUG_ABUSE, OTHER. Evidence menerima teks atau link; link berskema non-http/https ditolak dan panjangnya dibatasi config. Report lama tetap kompatibel dan dibaca sebagai kategori OTHER tanpa evidence. Staff dapat memfilter kategori melalui `/cdrmemberbook reports category <category> [open|resolved|all] [page]`. Placeholder console hook baru: `%category%` dan `%evidence%`.

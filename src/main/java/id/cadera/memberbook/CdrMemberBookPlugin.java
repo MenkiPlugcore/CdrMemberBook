@@ -296,7 +296,24 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
             getConfig().set("integrations.report.java-submit.reason-material", "PAPER");
         }
 
-        getConfig().set("config-version", 23);
+        if (configVersion < 24) {
+            getConfig().set("integrations.report.categories.enabled", true);
+            getConfig().set("integrations.report.categories.values", java.util.List.of("CHEATING", "GRIEFING", "TOXIC", "SCAM", "BUG_ABUSE", "OTHER"));
+            getConfig().set("integrations.report.categories.labels.CHEATING", "Cheating / Hack");
+            getConfig().set("integrations.report.categories.labels.GRIEFING", "Griefing");
+            getConfig().set("integrations.report.categories.labels.TOXIC", "Toxic / Harassment");
+            getConfig().set("integrations.report.categories.labels.SCAM", "Scam");
+            getConfig().set("integrations.report.categories.labels.BUG_ABUSE", "Bug Abuse");
+            getConfig().set("integrations.report.categories.labels.OTHER", "Lainnya");
+            getConfig().set("integrations.report.evidence.enabled", true);
+            getConfig().set("integrations.report.evidence.optional", true);
+            getConfig().set("integrations.report.evidence.max-length", 300);
+            getConfig().set("integrations.report.evidence.require-http-url-if-link", true);
+            getConfig().set("integrations.report.java-submit.evidence-title", "&8Lapor • Evidence");
+            getConfig().set("integrations.report.java-submit.evidence-placeholder", "Evidence opsional...");
+        }
+
+        getConfig().set("config-version", 24);
         saveConfig();
     }
 

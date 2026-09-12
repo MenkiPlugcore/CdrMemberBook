@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.9.7 - Report Categories & Evidence
+
+- Added configurable report categories shared by Java and Bedrock native submit flows.
+- Added optional evidence text/link with length and URL-scheme validation.
+- Persisted category/evidence in reports.yml while keeping old reports backward compatible as OTHER/no evidence.
+- Added category/evidence to staff notifications, console hook placeholders, Java/Bedrock details, audit context and admin output.
+- Added `/cdrmemberbook reports category <category> [open|resolved|all] [page]`.
+- Java flow is now category -> target -> reason anvil -> evidence anvil -> confirmation.
+- Bedrock flow is now category -> target -> reason -> evidence -> confirmation.
+- Config migrated to version 24.
+
 ## 1.9.6 - Java Native Report Submit
 
 - Added fully native Java report submission without requiring an external `/report` plugin.

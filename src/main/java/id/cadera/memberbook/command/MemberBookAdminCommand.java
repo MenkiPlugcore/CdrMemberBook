@@ -126,6 +126,16 @@ public final class MemberBookAdminCommand implements CommandExecutor, TabComplet
             sendReportPage(sender, plugin.reports().recent(limit, null), 1, "recent");
             return;
         }
+        if (args.length >= 2 && args[1].equalsIgnoreCase("category")) {
+            if (args.length < 3) { sender.sendMessage(Colors.legacy("&f/cdrmemberbook reports category <category> [open|resolved|all] [page]")); return; }
+            String category = plugin.reports().normalizeCategory(args[2]);
+            if (!plugin.reports().categories().contains(category)) { sender.sendMessage(Colors.legacy("&cKategori tidak dikenal. Pilihan: &f" + String.join(", ", plugin.reports().categories()))); return; }
+            ReportService.Status filter = args.length >= 4 ? parseReportStatus(sender, args[3]) : null;
+            if (args.length >= 4 && !isReportStatusToken(args[3])) return;
+            int page = parsePositiveInt(args.length >= 5 ? args[4] : "1", 1);
+            sendReportPage(sender, plugin.reports().listByCategory(category, filter), page, "category " + category);
+            return;
+        }
         if (args.length >= 2 && args[1].equalsIgnoreCase("player")) {
             if (args.length < 3) { sender.sendMessage(Colors.legacy("&f/cdrmemberbook reports player <name>")); return; }
             String q = args[2];
@@ -177,7 +187,7 @@ public final class MemberBookAdminCommand implements CommandExecutor, TabComplet
         for (int i = start; i < end; i++) {
             ReportService.ReportEntry e = entries.get(i);
             sender.sendMessage(Colors.legacy((e.status() == ReportService.Status.OPEN ? "&c" : "&a") + "#" + e.id()
-                    + " &f" + e.reporterName() + " &8-> &f" + e.targetName() + " &8| &7" + shorten(e.reason(), 48)
+                    + " &f" + e.reporterName() + " &8-> &f" + e.targetName() + " &8| &e[" + e.category() + "] &7" + shorten(e.reason(), 48)
                     + (e.notes().isEmpty() ? "" : " &8| &e" + e.notes().size() + " note")));
         }
     }
@@ -196,7 +206,9 @@ public final class MemberBookAdminCommand implements CommandExecutor, TabComplet
                 sender.sendMessage(Colors.legacy("&dReport #" + e.id() + " &8- &f" + e.status()));
                 sender.sendMessage(Colors.legacy("&7Reporter: &f" + e.reporterName() + " &8(" + e.reporterUuid() + ")"));
                 sender.sendMessage(Colors.legacy("&7Target: &f" + e.targetName() + " &8(" + e.targetUuid() + ") &8| &7Total target reports: &f" + plugin.reports().countByTarget(e.targetUuid(), null)));
+                sender.sendMessage(Colors.legacy("&7Kategori: &f" + plugin.reports().categoryLabel(e.category()) + " &8(" + e.category() + ")"));
                 sender.sendMessage(Colors.legacy("&7Alasan: &f" + e.reason()));
+                sender.sendMessage(Colors.legacy("&7Evidence: &f" + (e.evidence().isBlank() ? "-" : e.evidence())));
                 sender.sendMessage(Colors.legacy("&7Waktu: &f" + e.createdAt() + " &8| &7Lokasi: &f" + e.world() + " " + e.x() + "," + e.y() + "," + e.z()));
                 if (e.status() == ReportService.Status.RESOLVED) sender.sendMessage(Colors.legacy("&7Resolved: &f" + e.resolvedBy() + " &8@ &f" + e.resolvedAt()));
                 if (!e.notes().isEmpty()) {
@@ -230,7 +242,7 @@ public final class MemberBookAdminCommand implements CommandExecutor, TabComplet
     }
 
     private void sendHealth(CommandSender sender) {
-        sender.sendMessage(Colors.legacy("&dCdrMemberBook Health &8- &fv1.9.6"));
+        sender.sendMessage(Colors.legacy("&dCdrMemberBook Health &8- &fv1.9.7"));
         sender.sendMessage(Colors.legacy("&7Config version: &f" + plugin.getConfig().getInt("config-version", -1)
                 + " &8| &7Actions: &f" + plugin.getConfig().getBoolean("menu.actions.enabled", true)));
         sender.sendMessage(Colors.legacy("&7Floodgate: &f" + Bukkit.getPluginManager().isPluginEnabled("floodgate")
@@ -250,11 +262,11 @@ public final class MemberBookAdminCommand implements CommandExecutor, TabComplet
     }
 
     private void sendUsage(CommandSender sender, String label) {
-        sender.sendMessage(Colors.legacy("&dCdrMemberBook &fv1.9.6 &8- &7Admin Tools"));
+        sender.sendMessage(Colors.legacy("&dCdrMemberBook &fv1.9.7 &8- &7Admin Tools"));
         sender.sendMessage(Colors.legacy("&f/" + label + " <give|remove|fix|refresh|status|tutorialreset|tutorialshow> <player>"));
         sender.sendMessage(Colors.legacy("&f/" + label + " menudebug <player> [menu] &8- &7cek alasan tombol tampil/hilang"));
         sender.sendMessage(Colors.legacy("&f/" + label + " reports [page] [open|resolved|all] &8- &7list report"));
-        sender.sendMessage(Colors.legacy("&f/" + label + " reports <search|recent|player> ... &8- &7QoL report lookup"));
+        sender.sendMessage(Colors.legacy("&f/" + label + " reports <search|recent|player|category> ... &8- &7QoL report lookup"));
         sender.sendMessage(Colors.legacy("&f/" + label + " report <view|resolve|reopen|delete|note|audit> <id> [text]"));
         sender.sendMessage(Colors.legacy("&f/" + label + " health &8- &7cek dependency + production limits"));
     }
@@ -273,7 +285,10 @@ public final class MemberBookAdminCommand implements CommandExecutor, TabComplet
             return List.of();
         }
         if (args[0].equalsIgnoreCase("reports")) {
-            if (args.length == 3) return List.of("open","resolved","all").stream().filter(v -> v.startsWith(args[2].toLowerCase(Locale.ROOT))).toList();
+            if (args.length == 2) return List.of("search","recent","player","category").stream().filter(v -> v.startsWith(args[1].toLowerCase(Locale.ROOT))).toList();
+            if (args.length == 3 && args[1].equalsIgnoreCase("category")) return plugin.reports().categories().stream().filter(v -> v.toLowerCase(Locale.ROOT).startsWith(args[2].toLowerCase(Locale.ROOT))).toList();
+            if (args.length == 4 && args[1].equalsIgnoreCase("category")) return List.of("open","resolved","all").stream().filter(v -> v.startsWith(args[3].toLowerCase(Locale.ROOT))).toList();
+            if (args.length == 3 && !List.of("search","recent","player","category").contains(args[1].toLowerCase(Locale.ROOT))) return List.of("open","resolved","all").stream().filter(v -> v.startsWith(args[2].toLowerCase(Locale.ROOT))).toList();
             return List.of();
         }
         if (args.length == 2) {

@@ -144,7 +144,7 @@ public final class BedrockFormService {
             case "homes" -> showHomesMenu(player, menu.id(), button.command());
             case "pay" -> showPayPlayerSelect(player, menu.id());
             case "trade" -> showTradeMenu(player, menu.id());
-            case "report" -> showReportPlayerSelect(player, menu.id());
+            case "report" -> showReportCategorySelect(player, menu.id());
             case "report-center" -> showReportCenter(player, menu.id());
             case "submenu" -> {
                 if (button.submenu() == null || button.submenu().isBlank()) {
@@ -587,95 +587,95 @@ public final class BedrockFormService {
         send(player, form);
     }
 
-    private void showReportPlayerSelect(Player player, String returnMenuId) {
+    private void showReportCategorySelect(Player player, String returnMenuId) {
+        if (!plugin.reports().categoriesEnabled()) { showReportPlayerSelect(player, returnMenuId, "OTHER"); return; }
+        List<String> categories = plugin.reports().categories();
+        SimpleForm.Builder builder = SimpleForm.builder().title("Kategori Laporan").content("Pilih jenis pelanggaran.");
+        for (String category : categories) addButton(builder, plugin.reports().categoryLabel(category), "report", "textures/items/book_writable");
+        addButton(builder, "Kembali", "back", "textures/items/arrow");
+        int backIndex = categories.size();
+        send(player, builder.validResultHandler(response -> sync(() -> {
+            int selected = response.clickedButtonId();
+            if (selected == backIndex) { showConfiguredMenu(player, returnMenuId); return; }
+            if (selected < 0 || selected >= categories.size()) return;
+            showReportPlayerSelect(player, returnMenuId, categories.get(selected));
+        })).build());
+    }
+
+    private void showReportPlayerSelect(Player player, String returnMenuId, String category) {
         List<PlayerChoice> choices = onlineTargets(player);
-        SimpleForm.Builder builder = SimpleForm.builder()
-                .title("Lapor Player")
-                .content(choices.isEmpty() ? "Tidak ada player lain yang online." : "Pilih player yang ingin dilaporkan.");
+        SimpleForm.Builder builder = SimpleForm.builder().title("Lapor Player")
+                .content(choices.isEmpty() ? "Tidak ada player lain yang online." : "Kategori: " + plugin.reports().categoryLabel(category) + "\nPilih player yang ingin dilaporkan.");
         for (PlayerChoice choice : choices) addButton(builder, choice.name(), "player", "textures/items/name_tag");
         addButton(builder, "Kembali", "back", "textures/items/arrow");
         int backIndex = choices.size();
         send(player, builder.validResultHandler(response -> sync(() -> {
             int selected = response.clickedButtonId();
-            if (selected == backIndex) {
-                showConfiguredMenu(player, returnMenuId);
-                return;
-            }
+            if (selected == backIndex) { showReportCategorySelect(player, returnMenuId); return; }
             if (selected < 0 || selected >= choices.size()) return;
             Player target = Bukkit.getPlayer(choices.get(selected).uuid());
-            if (target == null) {
-                plugin.message(player, "player-not-found");
-                showReportPlayerSelect(player, returnMenuId);
-                return;
-            }
-            showReportReasonForm(player, target, returnMenuId);
+            if (target == null) { plugin.message(player, "player-not-found"); showReportPlayerSelect(player, returnMenuId, category); return; }
+            showReportReasonForm(player, target, returnMenuId, category);
         })).build());
     }
 
-    private void showReportReasonForm(Player player, Player target, String returnMenuId) {
-        CustomForm form = CustomForm.builder()
-                .title("Lapor " + target.getName())
-                .input("Alasan laporan", "contoh: grief, cheat, toxic", "")
-                .closedOrInvalidResultHandler(() -> sync(() -> showReportPlayerSelect(player, returnMenuId)))
+    private void showReportReasonForm(Player player, Player target, String returnMenuId, String category) {
+        CustomForm form = CustomForm.builder().title("Lapor " + target.getName())
+                .input("Alasan laporan", "contoh: penggunaan kill aura", "")
+                .closedOrInvalidResultHandler(() -> sync(() -> showReportPlayerSelect(player, returnMenuId, category)))
                 .validResultHandler(response -> sync(() -> {
                     String reason = response.asInput(0);
                     int min = Math.max(1, plugin.getConfig().getInt("integrations.report.min-reason-length", 3));
-                    if (reason == null || reason.trim().length() < min) {
-                        plugin.message(player, "report-reason-too-short", "%min%", Integer.toString(min));
-                        showReportReasonForm(player, target, returnMenuId);
-                        return;
-                    }
+                    int max = Math.max(min, plugin.getConfig().getInt("integrations.report.max-reason-length", 200));
+                    if (reason == null || reason.trim().length() < min) { plugin.message(player, "report-reason-too-short", "%min%", Integer.toString(min)); showReportReasonForm(player, target, returnMenuId, category); return; }
+                    if (reason.trim().length() > max) { plugin.message(player, "report-reason-too-long", "%max%", Integer.toString(max)); showReportReasonForm(player, target, returnMenuId, category); return; }
                     Player currentTarget = Bukkit.getPlayer(target.getUniqueId());
-                    if (currentTarget == null) {
-                        plugin.message(player, "player-not-found");
-                        showReportPlayerSelect(player, returnMenuId);
-                        return;
-                    }
-                    showReportConfirm(player, currentTarget, reason.trim(), returnMenuId);
-                }))
-                .build();
+                    if (currentTarget == null) { plugin.message(player, "player-not-found"); showReportPlayerSelect(player, returnMenuId, category); return; }
+                    showReportEvidenceForm(player, currentTarget, returnMenuId, category, reason.trim());
+                })).build();
         send(player, form);
     }
 
-    private void showReportConfirm(Player player, Player target, String reason, String returnMenuId) {
-        ModalForm form = ModalForm.builder()
-                .title("Konfirmasi Laporan")
-                .content("Laporkan " + target.getName() + "?\n\nAlasan: " + reason)
-                .button1("KIRIM LAPORAN")
-                .button2("KEMBALI")
+    private void showReportEvidenceForm(Player player, Player target, String returnMenuId, String category, String reason) {
+        if (!plugin.getConfig().getBoolean("integrations.report.evidence.enabled", true)) { showReportConfirm(player, target, category, reason, "", returnMenuId); return; }
+        CustomForm form = CustomForm.builder().title("Evidence • " + target.getName())
+                .input("Evidence (opsional)", "teks atau https://link-bukti", "")
+                .closedOrInvalidResultHandler(() -> sync(() -> showReportReasonForm(player, target, returnMenuId, category)))
                 .validResultHandler(response -> sync(() -> {
-                    if (!response.clickedFirst()) {
-                        showReportReasonForm(player, target, returnMenuId);
-                        return;
-                    }
+                    String evidence = response.asInput(0); if (evidence == null) evidence = ""; evidence = evidence.trim();
+                    String validation = plugin.reports().validateEvidence(evidence);
+                    if (!"ok".equals(validation)) { reportEvidenceError(player, validation); showReportEvidenceForm(player, target, returnMenuId, category, reason); return; }
                     Player currentTarget = Bukkit.getPlayer(target.getUniqueId());
-                    if (currentTarget == null) {
-                        plugin.message(player, "player-not-found");
-                        showReportPlayerSelect(player, returnMenuId);
-                        return;
-                    }
-                    ReportService.SubmitResult result = plugin.reports().submit(player, currentTarget, reason);
-                    if (result.success()) {
-                        plugin.message(player, "report-sent", "%id%", Integer.toString(result.id()),
-                                "%player%", currentTarget.getName());
-                        showConfiguredMenu(player, returnMenuId);
-                    } else if ("cooldown".equals(result.reasonCode())) {
-                        plugin.message(player, "report-cooldown", "%seconds%", Long.toString(result.waitSeconds()));
-                        showConfiguredMenu(player, returnMenuId);
-                    } else if ("duplicate".equals(result.reasonCode())) {
-                        plugin.message(player, "report-duplicate", "%id%", Integer.toString(result.id()),
-                                "%seconds%", Long.toString(result.waitSeconds()));
-                        showConfiguredMenu(player, returnMenuId);
-                    } else if ("self".equals(result.reasonCode())) {
-                        plugin.message(player, "cannot-report-self");
-                        showReportPlayerSelect(player, returnMenuId);
-                    } else {
-                        plugin.message(player, "report-failed");
-                        showConfiguredMenu(player, returnMenuId);
-                    }
-                }))
-                .build();
+                    if (currentTarget == null) { plugin.message(player, "player-not-found"); showReportPlayerSelect(player, returnMenuId, category); return; }
+                    showReportConfirm(player, currentTarget, category, reason, evidence, returnMenuId);
+                })).build();
         send(player, form);
+    }
+
+    private void showReportConfirm(Player player, Player target, String category, String reason, String evidence, String returnMenuId) {
+        String content = "Laporkan " + target.getName() + "?\n\nKategori: " + plugin.reports().categoryLabel(category)
+                + "\nAlasan: " + reason + "\nEvidence: " + (evidence.isBlank() ? "-" : evidence);
+        ModalForm form = ModalForm.builder().title("Konfirmasi Laporan").content(content)
+                .button1("KIRIM LAPORAN").button2("KEMBALI")
+                .validResultHandler(response -> sync(() -> {
+                    if (!response.clickedFirst()) { showReportEvidenceForm(player, target, returnMenuId, category, reason); return; }
+                    Player currentTarget = Bukkit.getPlayer(target.getUniqueId());
+                    if (currentTarget == null) { plugin.message(player, "player-not-found"); showReportPlayerSelect(player, returnMenuId, category); return; }
+                    ReportService.SubmitResult result = plugin.reports().submit(player, currentTarget, category, reason, evidence);
+                    if (result.success()) { plugin.message(player, "report-sent", "%id%", Integer.toString(result.id()), "%player%", currentTarget.getName()); showConfiguredMenu(player, returnMenuId); }
+                    else if ("cooldown".equals(result.reasonCode())) { plugin.message(player, "report-cooldown", "%seconds%", Long.toString(result.waitSeconds())); showConfiguredMenu(player, returnMenuId); }
+                    else if ("duplicate".equals(result.reasonCode())) { plugin.message(player, "report-duplicate", "%id%", Integer.toString(result.id()), "%seconds%", Long.toString(result.waitSeconds())); showConfiguredMenu(player, returnMenuId); }
+                    else if ("self".equals(result.reasonCode())) { plugin.message(player, "cannot-report-self"); showReportPlayerSelect(player, returnMenuId, category); }
+                    else if (result.reasonCode().startsWith("evidence")) { reportEvidenceError(player, result.reasonCode()); showReportEvidenceForm(player, currentTarget, returnMenuId, category, reason); }
+                    else { plugin.message(player, "report-failed"); showConfiguredMenu(player, returnMenuId); }
+                })).build();
+        send(player, form);
+    }
+
+    private void reportEvidenceError(Player player, String code) {
+        if ("evidence-required".equals(code)) plugin.message(player, "report-evidence-required");
+        else if ("evidence-too-long".equals(code)) plugin.message(player, "report-evidence-too-long", "%max%", Integer.toString(Math.max(20, plugin.getConfig().getInt("integrations.report.evidence.max-length", 300))));
+        else plugin.message(player, "report-evidence-invalid-link");
     }
 
     private boolean canManageReports(Player player) {
@@ -854,12 +854,14 @@ public final class BedrockFormService {
                 .append("Status: ").append(entry.status()).append('\n')
                 .append("Reporter: ").append(entry.reporterName()).append('\n')
                 .append("Target: ").append(entry.targetName()).append('\n')
+                .append("Kategori: ").append(plugin.reports().categoryLabel(entry.category())).append(" (").append(entry.category()).append(")\n")
                 .append("Total report target: ").append(plugin.reports().countByTarget(entry.targetUuid(), null))
                 .append(" (OPEN: ").append(plugin.reports().countByTarget(entry.targetUuid(), ReportService.Status.OPEN)).append(")\n")
                 .append("Waktu: ").append(entry.createdAt()).append('\n')
                 .append("Lokasi: ").append(entry.world()).append(' ')
                 .append(entry.x()).append(',').append(entry.y()).append(',').append(entry.z()).append("\n\n")
-                .append("Alasan:\n").append(entry.reason());
+                .append("Alasan:\n").append(entry.reason())
+                .append("\nEvidence: ").append(entry.evidence().isBlank() ? "-" : entry.evidence());
         if (entry.status() == ReportService.Status.RESOLVED) {
             content.append("\n\nResolved by: ").append(entry.resolvedBy())
                     .append("\nResolved at: ").append(entry.resolvedAt());

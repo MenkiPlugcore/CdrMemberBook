@@ -50,6 +50,7 @@ public final class JavaMenuService implements Listener {
     private static final String REPORT_DELETE = "__report_delete";
     private static final String REPORT_CONFIRM = "__report_confirm";
     private static final String REPORT_CANCEL = "__report_cancel";
+    private static final String REPORT_SUBMIT_CATEGORY_PREFIX = "__report_submit_category:";
     private static final String REPORT_SUBMIT_SEND = "__report_submit_send";
     private static final String REPORT_SUBMIT_EDIT = "__report_submit_edit";
     private static final String REPORT_SUBMIT_CANCEL = "__report_submit_cancel";
@@ -180,8 +181,10 @@ public final class JavaMenuService implements Listener {
             case REPORT_LIST -> handleReportListClick(player, holder, clicked);
             case REPORT_DETAIL -> handleReportDetailClick(player, holder, clicked);
             case REPORT_CONFIRM -> handleReportConfirmClick(player, holder, clicked);
+            case REPORT_SUBMIT_CATEGORY -> handleReportSubmitCategoryClick(player, holder, clicked);
             case REPORT_SUBMIT_PLAYER -> handleReportSubmitPlayerClick(player, holder, clicked);
             case REPORT_SUBMIT_REASON -> handleReportReasonClick(player, holder, event.getSlot());
+            case REPORT_SUBMIT_EVIDENCE -> handleReportEvidenceClick(player, holder, event.getSlot());
             case REPORT_SUBMIT_CONFIRM -> handlePlayerReportConfirmClick(player, holder, clicked);
         }
     }
@@ -217,7 +220,7 @@ public final class JavaMenuService implements Listener {
             case "report" -> {
                 if (plugin.reports() != null && plugin.reports().enabled()
                         && plugin.getConfig().getBoolean("integrations.report.java-submit.enabled", true)) {
-                    showReportSubmitPlayerSelect(player, menu.id(), 0);
+                    showReportCategorySelect(player, menu.id());
                 } else {
                     player.closeInventory();
                     plugin.executeMenuCommand(player, button);
@@ -285,12 +288,42 @@ public final class JavaMenuService implements Listener {
 
     // ---- Java Native Report Submit ----
 
-    private void showReportSubmitPlayerSelect(Player player, String returnMenuId, int requestedPage) {
+    private void showReportCategorySelect(Player player, String returnMenuId) {
         if (plugin.reports() == null || !plugin.reports().enabled()) {
             plugin.message(player, "feature-unavailable");
             showConfiguredMenu(player, returnMenuId, 0);
             return;
         }
+        if (!plugin.reports().categoriesEnabled()) {
+            showReportSubmitPlayerSelect(player, returnMenuId, 0, "OTHER");
+            return;
+        }
+        List<String> categories = plugin.reports().categories();
+        MenuHolder holder = new MenuHolder(MenuHolder.Type.REPORT_SUBMIT_CATEGORY, null, returnMenuId, 0, 54,
+                "§8Lapor Player §7• §eKategori");
+        Inventory inventory = holder.getInventory();
+        decorateFrame(inventory, player, 0, 1, "Kategori Laporan");
+        int slotIndex = 0;
+        for (String category : categories) {
+            if (slotIndex >= CONTENT_SLOTS.length) break;
+            ItemStack item = navigationItem(Material.BOOK, "&e" + plugin.reports().categoryLabel(category),
+                    REPORT_SUBMIT_CATEGORY_PREFIX + category, "&7Kategori: &f" + category + "\n\n&8» &fKlik untuk memilih.");
+            inventory.setItem(CONTENT_SLOTS[slotIndex++], item);
+        }
+        inventory.setItem(49, navigationItem(Material.OAK_DOOR, "&eKembali", NAV_BACK, "&7Kembali ke Member Menu."));
+        player.openInventory(inventory);
+    }
+
+    private void handleReportSubmitCategoryClick(Player player, MenuHolder holder, ItemStack clicked) {
+        String action = action(clicked);
+        if (NAV_BACK.equals(action)) { showConfiguredMenu(player, holder.menuId(), 0); return; }
+        if (action == null || !action.startsWith(REPORT_SUBMIT_CATEGORY_PREFIX)) return;
+        String category = plugin.reports().normalizeCategory(action.substring(REPORT_SUBMIT_CATEGORY_PREFIX.length()));
+        if (!plugin.reports().categories().contains(category)) { showReportCategorySelect(player, holder.menuId()); return; }
+        showReportSubmitPlayerSelect(player, holder.menuId(), 0, category);
+    }
+
+    private void showReportSubmitPlayerSelect(Player player, String returnMenuId, int requestedPage, String category) {
         List<? extends Player> players = Bukkit.getOnlinePlayers().stream()
                 .filter(other -> !other.getUniqueId().equals(player.getUniqueId()))
                 .sorted((a, b) -> a.getName().compareToIgnoreCase(b.getName()))
@@ -300,208 +333,183 @@ public final class JavaMenuService implements Listener {
             showConfiguredMenu(player, returnMenuId, 0);
             return;
         }
-
         int totalPages = Math.max(1, (players.size() + PAGE_SIZE - 1) / PAGE_SIZE);
         int page = Math.max(0, Math.min(requestedPage, totalPages - 1));
         int start = page * PAGE_SIZE;
         int end = Math.min(players.size(), start + PAGE_SIZE);
-        MenuHolder holder = new MenuHolder(MenuHolder.Type.REPORT_SUBMIT_PLAYER, null, returnMenuId, page, 54,
-                "§8Lapor Player §7• §fPilih Target");
+        MenuHolder holder = new MenuHolder(MenuHolder.Type.REPORT_SUBMIT_PLAYER, null, returnMenuId, page,
+                category, 0, 54, "§8Lapor §7• §fPilih Target");
         Inventory inventory = holder.getInventory();
-        decorateFrame(inventory, player, page, totalPages, "Lapor Player");
-
+        decorateFrame(inventory, player, page, totalPages, plugin.reports().categoryLabel(category));
         int slotIndex = 0;
         for (int i = start; i < end; i++) {
             Player target = players.get(i);
             ItemStack head = new ItemStack(Material.PLAYER_HEAD);
             SkullMeta meta = (SkullMeta) head.getItemMeta();
             meta.setDisplayName(Colors.legacy("&c&l" + target.getName()));
-            meta.setLore(List.of(
-                    Colors.legacy("&7World: &f" + target.getWorld().getName()),
-                    Colors.legacy(""),
-                    Colors.legacy("&8» &fKlik untuk melaporkan player ini.")
-            ));
+            meta.setLore(List.of(Colors.legacy("&7Kategori: &f" + plugin.reports().categoryLabel(category)), Colors.legacy(""), Colors.legacy("&8» &fKlik untuk melaporkan.")));
             meta.setOwningPlayer(target);
             meta.getPersistentDataContainer().set(plugin.playerKey(), PersistentDataType.STRING, target.getUniqueId().toString());
             head.setItemMeta(meta);
             inventory.setItem(CONTENT_SLOTS[slotIndex++], head);
         }
         if (page > 0) inventory.setItem(45, navigationItem(Material.ARROW, "&eHalaman Sebelumnya", NAV_PREVIOUS, "&7Lihat player sebelumnya."));
-        inventory.setItem(49, navigationItem(Material.OAK_DOOR, "&eKembali", NAV_BACK, "&7Kembali ke Member Menu."));
+        inventory.setItem(49, navigationItem(Material.OAK_DOOR, "&eKembali", NAV_BACK, "&7Kembali ke kategori."));
         if (page < totalPages - 1) inventory.setItem(53, navigationItem(Material.ARROW, "&eHalaman Berikutnya", NAV_NEXT, "&7Lihat player berikutnya."));
         player.openInventory(inventory);
     }
 
     private void handleReportSubmitPlayerClick(Player player, MenuHolder holder, ItemStack clicked) {
         String nav = action(clicked);
-        if (NAV_PREVIOUS.equals(nav)) { showReportSubmitPlayerSelect(player, holder.menuId(), holder.page() - 1); return; }
-        if (NAV_NEXT.equals(nav)) { showReportSubmitPlayerSelect(player, holder.menuId(), holder.page() + 1); return; }
-        if (NAV_BACK.equals(nav)) { showConfiguredMenu(player, holder.menuId(), 0); return; }
+        String category = plugin.reports().normalizeCategory(holder.context());
+        if (NAV_PREVIOUS.equals(nav)) { showReportSubmitPlayerSelect(player, holder.menuId(), holder.page() - 1, category); return; }
+        if (NAV_NEXT.equals(nav)) { showReportSubmitPlayerSelect(player, holder.menuId(), holder.page() + 1, category); return; }
+        if (NAV_BACK.equals(nav)) { showReportCategorySelect(player, holder.menuId()); return; }
         if (!clicked.hasItemMeta()) return;
         String raw = clicked.getItemMeta().getPersistentDataContainer().get(plugin.playerKey(), PersistentDataType.STRING);
         if (raw == null) return;
         try {
             Player target = Bukkit.getPlayer(UUID.fromString(raw));
-            if (target == null) {
-                plugin.message(player, "player-not-found");
-                showReportSubmitPlayerSelect(player, holder.menuId(), holder.page());
-                return;
-            }
-            showReportReasonInput(player, target, holder.menuId());
+            if (target == null) { plugin.message(player, "player-not-found"); showReportSubmitPlayerSelect(player, holder.menuId(), holder.page(), category); return; }
+            showReportReasonInput(player, target, holder.menuId(), category);
         } catch (IllegalArgumentException ignored) { }
     }
 
-    private void showReportReasonInput(Player player, Player target, String returnMenuId) {
-        if (target == null || !target.isOnline()) {
-            plugin.message(player, "player-not-found");
-            showReportSubmitPlayerSelect(player, returnMenuId, 0);
-            return;
-        }
+    private void showReportReasonInput(Player player, Player target, String returnMenuId, String category) {
+        if (target == null || !target.isOnline()) { plugin.message(player, "player-not-found"); showReportSubmitPlayerSelect(player, returnMenuId, 0, category); return; }
         String rawTitle = plugin.getConfig().getString("integrations.report.java-submit.reason-title", "&8Lapor • Alasan");
-        String title = trimTitle(Colors.legacy(rawTitle == null ? "&8Lapor • Alasan" : rawTitle));
         MenuHolder holder = new MenuHolder(MenuHolder.Type.REPORT_SUBMIT_REASON, target.getUniqueId(), returnMenuId, 0,
-                InventoryType.ANVIL, title);
+                category, 0, InventoryType.ANVIL, trimTitle(Colors.legacy(rawTitle == null ? "&8Lapor • Alasan" : rawTitle)));
         AnvilInventory inventory = (AnvilInventory) holder.getInventory();
         String placeholder = reportReasonPlaceholder();
         Material material = material(plugin.getConfig().getString("integrations.report.java-submit.reason-material", "PAPER"), Material.PAPER);
-        ItemStack input = item(material, "&f" + placeholder, List.of(
-                "&7Target: &f" + target.getName(),
-                "&7Ketik alasan laporan di kolom nama.",
-                "&7Lalu klik hasil di slot kanan.",
-                "",
-                "&8ESC untuk membatalkan."
-        ));
-        inventory.setItem(0, input);
+        inventory.setItem(0, item(material, "&f" + placeholder, List.of("&7Kategori: &f" + plugin.reports().categoryLabel(category), "&7Target: &f" + target.getName(), "&7Ketik alasan di kolom nama.", "", "&8ESC untuk membatalkan.")));
+        inventory.setRepairCost(0);
+        player.openInventory(inventory);
+    }
+
+    private void showReportEvidenceInput(Player player, Player target, String returnMenuId, String category, String reason) {
+        if (!plugin.getConfig().getBoolean("integrations.report.evidence.enabled", true)) { showPlayerReportConfirm(player, target, category, reason, "", returnMenuId); return; }
+        if (target == null || !target.isOnline()) { plugin.message(player, "player-not-found"); showReportSubmitPlayerSelect(player, returnMenuId, 0, category); return; }
+        String rawTitle = plugin.getConfig().getString("integrations.report.java-submit.evidence-title", "&8Lapor • Evidence");
+        String context = category + "\n" + reason;
+        MenuHolder holder = new MenuHolder(MenuHolder.Type.REPORT_SUBMIT_EVIDENCE, target.getUniqueId(), returnMenuId, 0,
+                context, 0, InventoryType.ANVIL, trimTitle(Colors.legacy(rawTitle == null ? "&8Lapor • Evidence" : rawTitle)));
+        AnvilInventory inventory = (AnvilInventory) holder.getInventory();
+        String placeholder = reportEvidencePlaceholder();
+        inventory.setItem(0, item(Material.PAPER, "&f" + placeholder, List.of("&7Evidence opsional: teks atau link http/https.", "&7Biarkan placeholder untuk melewati.", "", "&8Klik hasil di kanan untuk lanjut.")));
         inventory.setRepairCost(0);
         player.openInventory(inventory);
     }
 
     @EventHandler
     public void onPrepareReportAnvil(PrepareAnvilEvent event) {
-        if (!(event.getInventory().getHolder() instanceof MenuHolder holder)
-                || holder.type() != MenuHolder.Type.REPORT_SUBMIT_REASON) return;
+        if (!(event.getInventory().getHolder() instanceof MenuHolder holder)) return;
+        if (holder.type() != MenuHolder.Type.REPORT_SUBMIT_REASON && holder.type() != MenuHolder.Type.REPORT_SUBMIT_EVIDENCE) return;
         AnvilInventory inventory = event.getInventory();
         inventory.setRepairCost(0);
-        String reason = inventory.getRenameText();
+        String value = inventory.getRenameText();
         ItemStack input = inventory.getItem(0);
         if (input == null || input.getType().isAir()) return;
         ItemStack result = input.clone();
         ItemMeta meta = result.getItemMeta();
-        String display = reason == null || reason.isBlank() ? reportReasonPlaceholder() : reason.trim();
+        String fallback = holder.type() == MenuHolder.Type.REPORT_SUBMIT_REASON ? reportReasonPlaceholder() : reportEvidencePlaceholder();
+        String display = value == null || value.isBlank() ? fallback : value.trim();
         meta.setDisplayName(Colors.legacy("&f" + shorten(display, 48)));
         result.setItemMeta(meta);
         event.setResult(result);
     }
 
     private void handleReportReasonClick(Player player, MenuHolder holder, int slot) {
-        if (slot != 2 || !(holder.getInventory() instanceof AnvilInventory inventory)) return;
-        if (holder.targetId() == null) return;
+        if (slot != 2 || !(holder.getInventory() instanceof AnvilInventory inventory) || holder.targetId() == null) return;
+        String category = plugin.reports().normalizeCategory(holder.context());
         Player target = Bukkit.getPlayer(holder.targetId());
-        if (target == null) {
-            plugin.message(player, "player-not-found");
-            showReportSubmitPlayerSelect(player, holder.menuId(), 0);
-            return;
-        }
+        if (target == null) { plugin.message(player, "player-not-found"); showReportSubmitPlayerSelect(player, holder.menuId(), 0, category); return; }
         String reason = inventory.getRenameText();
         if (reason == null) reason = "";
         reason = reason.trim();
         if (reason.equalsIgnoreCase(reportReasonPlaceholder())) reason = "";
         int min = Math.max(1, plugin.getConfig().getInt("integrations.report.min-reason-length", 3));
         int max = Math.max(min, plugin.getConfig().getInt("integrations.report.max-reason-length", 200));
-        if (reason.length() < min) {
-            plugin.message(player, "report-reason-too-short", "%min%", Integer.toString(min));
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                Player current = Bukkit.getPlayer(target.getUniqueId());
-                if (player.isOnline() && current != null) showReportReasonInput(player, current, holder.menuId());
-            });
-            return;
-        }
-        if (reason.length() > max) {
-            plugin.message(player, "report-reason-too-long", "%max%", Integer.toString(max));
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                Player current = Bukkit.getPlayer(target.getUniqueId());
-                if (player.isOnline() && current != null) showReportReasonInput(player, current, holder.menuId());
-            });
-            return;
-        }
-        showPlayerReportConfirm(player, target, reason, holder.menuId());
+        if (reason.length() < min) { plugin.message(player, "report-reason-too-short", "%min%", Integer.toString(min)); showReportReasonInput(player, target, holder.menuId(), category); return; }
+        if (reason.length() > max) { plugin.message(player, "report-reason-too-long", "%max%", Integer.toString(max)); showReportReasonInput(player, target, holder.menuId(), category); return; }
+        showReportEvidenceInput(player, target, holder.menuId(), category, reason);
     }
 
-    private void showPlayerReportConfirm(Player player, Player target, String reason, String returnMenuId) {
-        if (target == null || !target.isOnline()) {
-            plugin.message(player, "player-not-found");
-            showReportSubmitPlayerSelect(player, returnMenuId, 0);
-            return;
-        }
+    private void handleReportEvidenceClick(Player player, MenuHolder holder, int slot) {
+        if (slot != 2 || !(holder.getInventory() instanceof AnvilInventory inventory) || holder.targetId() == null) return;
+        String[] draft = holder.context().split("\\n", 2);
+        if (draft.length < 2) return;
+        String category = plugin.reports().normalizeCategory(draft[0]);
+        String reason = draft[1];
+        Player target = Bukkit.getPlayer(holder.targetId());
+        if (target == null) { plugin.message(player, "player-not-found"); showReportSubmitPlayerSelect(player, holder.menuId(), 0, category); return; }
+        String evidence = inventory.getRenameText();
+        if (evidence == null) evidence = "";
+        evidence = evidence.trim();
+        if (evidence.equalsIgnoreCase(reportEvidencePlaceholder())) evidence = "";
+        String validation = plugin.reports().validateEvidence(evidence);
+        if (!"ok".equals(validation)) { reportEvidenceError(player, validation); showReportEvidenceInput(player, target, holder.menuId(), category, reason); return; }
+        showPlayerReportConfirm(player, target, category, reason, evidence, holder.menuId());
+    }
+
+    private void showPlayerReportConfirm(Player player, Player target, String category, String reason, String evidence, String returnMenuId) {
+        if (target == null || !target.isOnline()) { plugin.message(player, "player-not-found"); showReportSubmitPlayerSelect(player, returnMenuId, 0, category); return; }
+        String context = category + "\n" + reason + "\n" + evidence;
         MenuHolder holder = new MenuHolder(MenuHolder.Type.REPORT_SUBMIT_CONFIRM, target.getUniqueId(), returnMenuId, 0,
-                reason, 0, 27, trimTitle("§8Konfirmasi §7• §c" + target.getName()));
+                context, 0, 27, trimTitle("§8Konfirmasi §7• §c" + target.getName()));
         Inventory inventory = holder.getInventory();
         fillAll(inventory, filler(Material.BLACK_STAINED_GLASS_PANE));
-
         ItemStack head = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta headMeta = (SkullMeta) head.getItemMeta();
         headMeta.setOwningPlayer(target);
         headMeta.setDisplayName(Colors.legacy("&c&lLaporkan " + target.getName()));
         List<String> lore = new ArrayList<>();
+        lore.add(Colors.legacy("&7Kategori: &f" + plugin.reports().categoryLabel(category)));
         lore.add(Colors.legacy("&7Alasan:"));
         for (String line : wrapText(reason, 36)) lore.add(Colors.legacy("&f" + line));
-        headMeta.setLore(lore);
-        head.setItemMeta(headMeta);
-        inventory.setItem(13, head);
-        inventory.setItem(10, navigationItem(Material.LIME_CONCRETE, "&a&lKIRIM LAPORAN", REPORT_SUBMIT_SEND,
-                "&7Kirim report ini ke staff."));
-        inventory.setItem(16, navigationItem(Material.ANVIL, "&eEdit Alasan", REPORT_SUBMIT_EDIT,
-                "&7Kembali ke input alasan."));
-        inventory.setItem(22, navigationItem(Material.BARRIER, "&cBatal", REPORT_SUBMIT_CANCEL,
-                "&7Batalkan report dan kembali ke menu."));
+        lore.add(Colors.legacy("&7Evidence: &f" + (evidence.isBlank() ? "-" : shorten(evidence, 48))));
+        headMeta.setLore(lore); head.setItemMeta(headMeta); inventory.setItem(13, head);
+        inventory.setItem(10, navigationItem(Material.LIME_CONCRETE, "&a&lKIRIM LAPORAN", REPORT_SUBMIT_SEND, "&7Kirim report ini ke staff."));
+        inventory.setItem(16, navigationItem(Material.ANVIL, "&eEdit", REPORT_SUBMIT_EDIT, "&7Kembali ke input alasan."));
+        inventory.setItem(22, navigationItem(Material.BARRIER, "&cBatal", REPORT_SUBMIT_CANCEL, "&7Batalkan report."));
         player.openInventory(inventory);
     }
 
     private void handlePlayerReportConfirmClick(Player player, MenuHolder holder, ItemStack clicked) {
         String action = action(clicked);
         if (action == null || holder.targetId() == null) return;
+        String[] draft = holder.context().split("\\n", 3);
+        if (draft.length < 3) return;
+        String category = draft[0], reason = draft[1], evidence = draft[2];
         Player target = Bukkit.getPlayer(holder.targetId());
-        if (REPORT_SUBMIT_CANCEL.equals(action)) {
-            showConfiguredMenu(player, holder.menuId(), 0);
-            return;
-        }
-        if (target == null) {
-            plugin.message(player, "player-not-found");
-            showReportSubmitPlayerSelect(player, holder.menuId(), 0);
-            return;
-        }
-        if (REPORT_SUBMIT_EDIT.equals(action)) {
-            showReportReasonInput(player, target, holder.menuId());
-            return;
-        }
+        if (REPORT_SUBMIT_CANCEL.equals(action)) { showConfiguredMenu(player, holder.menuId(), 0); return; }
+        if (target == null) { plugin.message(player, "player-not-found"); showReportSubmitPlayerSelect(player, holder.menuId(), 0, category); return; }
+        if (REPORT_SUBMIT_EDIT.equals(action)) { showReportReasonInput(player, target, holder.menuId(), category); return; }
         if (!REPORT_SUBMIT_SEND.equals(action)) return;
-        ReportService.SubmitResult result = plugin.reports().submit(player, target, holder.context());
-        if (result.success()) {
-            plugin.message(player, "report-sent", "%id%", Integer.toString(result.id()), "%player%", target.getName());
-            showConfiguredMenu(player, holder.menuId(), 0);
-        } else if ("cooldown".equals(result.reasonCode())) {
-            plugin.message(player, "report-cooldown", "%seconds%", Long.toString(result.waitSeconds()));
-            showConfiguredMenu(player, holder.menuId(), 0);
-        } else if ("duplicate".equals(result.reasonCode())) {
-            plugin.message(player, "report-duplicate", "%id%", Integer.toString(result.id()),
-                    "%seconds%", Long.toString(result.waitSeconds()));
-            showConfiguredMenu(player, holder.menuId(), 0);
-        } else if ("self".equals(result.reasonCode())) {
-            plugin.message(player, "cannot-report-self");
-            showReportSubmitPlayerSelect(player, holder.menuId(), 0);
-        } else if ("short".equals(result.reasonCode())) {
-            int min = Math.max(1, plugin.getConfig().getInt("integrations.report.min-reason-length", 3));
-            plugin.message(player, "report-reason-too-short", "%min%", Integer.toString(min));
-            showReportReasonInput(player, target, holder.menuId());
-        } else {
-            plugin.message(player, "report-failed");
-            showConfiguredMenu(player, holder.menuId(), 0);
-        }
+        ReportService.SubmitResult result = plugin.reports().submit(player, target, category, reason, evidence);
+        if (result.success()) { plugin.message(player, "report-sent", "%id%", Integer.toString(result.id()), "%player%", target.getName()); showConfiguredMenu(player, holder.menuId(), 0); }
+        else if ("cooldown".equals(result.reasonCode())) { plugin.message(player, "report-cooldown", "%seconds%", Long.toString(result.waitSeconds())); showConfiguredMenu(player, holder.menuId(), 0); }
+        else if ("duplicate".equals(result.reasonCode())) { plugin.message(player, "report-duplicate", "%id%", Integer.toString(result.id()), "%seconds%", Long.toString(result.waitSeconds())); showConfiguredMenu(player, holder.menuId(), 0); }
+        else if ("short".equals(result.reasonCode())) { plugin.message(player, "report-reason-too-short", "%min%", Integer.toString(Math.max(1, plugin.getConfig().getInt("integrations.report.min-reason-length", 3)))); showReportReasonInput(player, target, holder.menuId(), category); }
+        else if (result.reasonCode().startsWith("evidence")) { reportEvidenceError(player, result.reasonCode()); showReportEvidenceInput(player, target, holder.menuId(), category, reason); }
+        else { plugin.message(player, "report-failed"); showConfiguredMenu(player, holder.menuId(), 0); }
+    }
+
+    private void reportEvidenceError(Player player, String code) {
+        if ("evidence-required".equals(code)) plugin.message(player, "report-evidence-required");
+        else if ("evidence-too-long".equals(code)) plugin.message(player, "report-evidence-too-long", "%max%", Integer.toString(Math.max(20, plugin.getConfig().getInt("integrations.report.evidence.max-length", 300))));
+        else plugin.message(player, "report-evidence-invalid-link");
     }
 
     private String reportReasonPlaceholder() {
         String value = plugin.getConfig().getString("integrations.report.java-submit.reason-placeholder", "Ketik alasan laporan...");
         return value == null || value.isBlank() ? "Ketik alasan laporan..." : value.trim();
+    }
+
+    private String reportEvidencePlaceholder() {
+        String value = plugin.getConfig().getString("integrations.report.java-submit.evidence-placeholder", "Evidence opsional...");
+        return value == null || value.isBlank() ? "Evidence opsional..." : value.trim();
     }
 
     private List<String> wrapText(String value, int width) {
@@ -510,10 +518,7 @@ public final class JavaMenuService implements Listener {
         List<String> lines = new ArrayList<>();
         StringBuilder current = new StringBuilder();
         for (String word : value.trim().split("\\s+")) {
-            if (current.length() > 0 && current.length() + 1 + word.length() > safeWidth) {
-                lines.add(current.toString());
-                current.setLength(0);
-            }
+            if (current.length() > 0 && current.length() + 1 + word.length() > safeWidth) { lines.add(current.toString()); current.setLength(0); }
             if (current.length() > 0) current.append(' ');
             current.append(word);
         }
@@ -678,6 +683,7 @@ public final class JavaMenuService implements Listener {
         details.add("&7Status: &f" + entry.status());
         details.add("&7Reporter: &f" + entry.reporterName());
         details.add("&7Target: &f" + entry.targetName());
+        details.add("&7Kategori: &f" + plugin.reports().categoryLabel(entry.category()) + " &8(" + entry.category() + ")");
         details.add("&7Total report target: &f" + plugin.reports().countByTarget(entry.targetUuid(), null)
                 + " &8(OPEN: &f" + plugin.reports().countByTarget(entry.targetUuid(), ReportService.Status.OPEN) + "&8)");
         details.add("&7Waktu: &f" + entry.createdAt());
@@ -685,6 +691,7 @@ public final class JavaMenuService implements Listener {
         details.add("");
         details.add("&7Alasan:");
         details.add("&f" + shorten(entry.reason(), 80));
+        details.add("&7Evidence: &f" + (entry.evidence().isBlank() ? "-" : shorten(entry.evidence(), 80)));
         if (entry.status() == ReportService.Status.RESOLVED) {
             details.add("");
             details.add("&7Resolved by: &f" + entry.resolvedBy());

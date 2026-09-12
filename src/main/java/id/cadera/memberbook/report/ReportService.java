@@ -35,22 +35,32 @@ public final class ReportService {
     public boolean enabled() { return plugin.getConfig().getBoolean("integrations.report.enabled", true); }
 
     public SubmitResult submit(Player reporter, Player target, String rawReason) {
+        return submit(reporter, target, "OTHER", rawReason, "");
+    }
+
+    public SubmitResult submit(Player reporter, Player target, String rawCategory, String rawReason, String rawEvidence) {
         if (!enabled()) return new SubmitResult(false, 0, 0, "disabled");
         if (reporter.getUniqueId().equals(target.getUniqueId())) return new SubmitResult(false, 0, 0, "self");
+
+        String category = categoriesEnabled() ? normalizeCategory(rawCategory) : "OTHER";
+        if (categoriesEnabled() && !categories().contains(category)) return new SubmitResult(false, 0, 0, "category");
         String reason = sanitizeText(rawReason);
         int min = Math.max(1, plugin.getConfig().getInt("integrations.report.min-reason-length", 3));
         int max = Math.max(min, plugin.getConfig().getInt("integrations.report.max-reason-length", 200));
         if (reason.length() < min) return new SubmitResult(false, 0, 0, "short");
         if (reason.length() > max) reason = reason.substring(0, max).trim();
 
+        String evidence = plugin.getConfig().getBoolean("integrations.report.evidence.enabled", true)
+                ? sanitizeText(rawEvidence) : "";
+        String evidenceValidation = validateEvidence(evidence);
+        if (!"ok".equals(evidenceValidation)) return new SubmitResult(false, 0, 0, evidenceValidation);
+
         long now = System.currentTimeMillis();
         long until = cooldownUntil.getOrDefault(reporter.getUniqueId(), 0L);
         if (until > now) return new SubmitResult(false, 0, Math.max(1L, (until - now + 999L) / 1000L), "cooldown");
 
         DuplicateMatch duplicate = findDuplicate(reporter.getUniqueId(), target.getUniqueId(), now);
-        if (duplicate != null) {
-            return new SubmitResult(false, duplicate.id(), duplicate.waitSeconds(), "duplicate");
-        }
+        if (duplicate != null) return new SubmitResult(false, duplicate.id(), duplicate.waitSeconds(), "duplicate");
 
         int id = Math.max(1, data.getInt("next-id", 1));
         String base = "reports." + id + ".";
@@ -61,7 +71,9 @@ public final class ReportService {
         data.set(base + "reporter.uuid", reporter.getUniqueId().toString());
         data.set(base + "target.name", target.getName());
         data.set(base + "target.uuid", target.getUniqueId().toString());
+        data.set(base + "category", category);
         data.set(base + "reason", reason);
+        data.set(base + "evidence", evidence);
         data.set(base + "world", reporter.getWorld().getName());
         data.set(base + "location.x", reporter.getLocation().getBlockX());
         data.set(base + "location.y", reporter.getLocation().getBlockY());
@@ -70,7 +82,7 @@ public final class ReportService {
         data.set(base + "resolved-by", null);
         data.set(base + "notes", new ArrayList<>());
         data.set(base + "audit", new ArrayList<>());
-        appendAuditInMemory(id, "CREATE", reporter.getName(), "Report dibuat untuk " + target.getName());
+        appendAuditInMemory(id, "CREATE", reporter.getName(), "[" + category + "] Report dibuat untuk " + target.getName());
         data.set("next-id", id + 1);
         if (!save()) {
             reloadFromDisk();
@@ -79,10 +91,61 @@ public final class ReportService {
 
         long cooldown = Math.max(0L, plugin.getConfig().getLong("integrations.report.cooldown-seconds", 60L));
         if (cooldown > 0L) cooldownUntil.put(reporter.getUniqueId(), now + cooldown * 1000L);
-        notifyStaff(id, reporter, target, reason);
-        runConsoleHook(id, reporter, target, reason);
-        plugin.getLogger().info("Report #" + id + ": " + reporter.getName() + " -> " + target.getName() + " | " + reason);
+        notifyStaff(id, reporter, target, category, reason, evidence);
+        runConsoleHook(id, reporter, target, category, reason, evidence);
+        plugin.getLogger().info("Report #" + id + " [" + category + "]: " + reporter.getName() + " -> " + target.getName() + " | " + reason);
         return new SubmitResult(true, id, 0, "ok");
+    }
+
+    public boolean categoriesEnabled() {
+        return plugin.getConfig().getBoolean("integrations.report.categories.enabled", true);
+    }
+
+    public List<String> categories() {
+        List<String> configured = plugin.getConfig().getStringList("integrations.report.categories.values");
+        if (configured.isEmpty()) configured = List.of("CHEATING", "GRIEFING", "TOXIC", "SCAM", "BUG_ABUSE", "OTHER");
+        List<String> out = new ArrayList<>();
+        for (String raw : configured) {
+            String normalized = normalizeCategory(raw);
+            if (!normalized.isBlank() && !out.contains(normalized)) out.add(normalized);
+        }
+        if (out.isEmpty()) out.add("OTHER");
+        return List.copyOf(out);
+    }
+
+    public String normalizeCategory(String raw) {
+        String value = raw == null ? "" : raw.trim().toUpperCase(Locale.ROOT).replace('-', '_').replace(' ', '_');
+        value = value.replaceAll("[^A-Z0-9_]", "");
+        return value.isBlank() ? "OTHER" : value;
+    }
+
+    public String categoryLabel(String raw) {
+        String category = normalizeCategory(raw);
+        String configured = plugin.getConfig().getString("integrations.report.categories.labels." + category);
+        if (configured != null && !configured.isBlank()) return configured;
+        String[] parts = category.toLowerCase(Locale.ROOT).split("_");
+        StringBuilder out = new StringBuilder();
+        for (String part : parts) {
+            if (part.isBlank()) continue;
+            if (out.length() > 0) out.append(' ');
+            out.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1));
+        }
+        return out.length() == 0 ? "Other" : out.toString();
+    }
+
+    public String validateEvidence(String rawEvidence) {
+        if (!plugin.getConfig().getBoolean("integrations.report.evidence.enabled", true)) return "ok";
+        String evidence = sanitizeText(rawEvidence);
+        boolean optional = plugin.getConfig().getBoolean("integrations.report.evidence.optional", true);
+        if (evidence.isBlank()) return optional ? "ok" : "evidence-required";
+        int max = Math.max(20, plugin.getConfig().getInt("integrations.report.evidence.max-length", 300));
+        if (evidence.length() > max) return "evidence-too-long";
+        if (plugin.getConfig().getBoolean("integrations.report.evidence.require-http-url-if-link", true)
+                && evidence.matches("(?i)^[a-z][a-z0-9+.-]*://.*")
+                && !(evidence.toLowerCase(Locale.ROOT).startsWith("http://") || evidence.toLowerCase(Locale.ROOT).startsWith("https://"))) {
+            return "evidence-invalid-link";
+        }
+        return "ok";
     }
 
     public ReportEntry get(int id) {
@@ -113,8 +176,14 @@ public final class ReportService {
             case REPORTER -> contains(entry.reporterName(), needle) || contains(entry.reporterUuid(), needle);
             case TARGET -> contains(entry.targetName(), needle) || contains(entry.targetUuid(), needle);
             case ANY -> contains(entry.reporterName(), needle) || contains(entry.reporterUuid(), needle)
-                    || contains(entry.targetName(), needle) || contains(entry.targetUuid(), needle);
+                    || contains(entry.targetName(), needle) || contains(entry.targetUuid(), needle)
+                    || contains(entry.category(), needle) || contains(entry.evidence(), needle);
         }).toList();
+    }
+
+    public List<ReportEntry> listByCategory(String rawCategory, Status filter) {
+        String category = normalizeCategory(rawCategory);
+        return list(filter).stream().filter(entry -> normalizeCategory(entry.category()).equals(category)).toList();
     }
 
     public List<ReportEntry> recent(int limit, Status filter) {
@@ -238,7 +307,8 @@ public final class ReportService {
         return new ReportEntry(id, status, data.getString(base + "created-at", "unknown"),
                 data.getString(base + "reporter.name", "unknown"), data.getString(base + "reporter.uuid", ""),
                 data.getString(base + "target.name", "unknown"), data.getString(base + "target.uuid", ""),
-                data.getString(base + "reason", ""), data.getString(base + "world", "unknown"),
+                normalizeCategory(data.getString(base + "category", "OTHER")), data.getString(base + "reason", ""),
+                data.getString(base + "evidence", ""), data.getString(base + "world", "unknown"),
                 data.getInt(base + "location.x"), data.getInt(base + "location.y"), data.getInt(base + "location.z"),
                 data.getString(base + "resolved-at", ""), data.getString(base + "resolved-by", ""),
                 List.copyOf(notes), List.copyOf(audit));
@@ -294,17 +364,20 @@ public final class ReportService {
 
     private String safeStaff(String staff) { return staff == null || staff.isBlank() ? "Console" : staff; }
 
-    private void notifyStaff(int id, Player reporter, Player target, String reason) {
+    private void notifyStaff(int id, Player reporter, Player target, String category, String reason, String evidence) {
         String permission = plugin.getConfig().getString("integrations.report.staff-permission", "cdrmemberbook.staff.report");
-        String message = "&8[&cREPORT #" + id + "&8] &f" + reporter.getName() + " &7melaporkan &f" + target.getName() + "&7: &f" + reason;
+        String message = "&8[&cREPORT #" + id + "&8] &7[&e" + category + "&7] &f" + reporter.getName()
+                + " &7melaporkan &f" + target.getName() + "&7: &f" + reason
+                + (evidence.isBlank() ? "" : " &8| &7Evidence: &f" + evidence);
         for (Player online : Bukkit.getOnlinePlayers()) if (permission == null || permission.isBlank() || online.hasPermission(permission)) online.sendMessage(Colors.legacy(message));
     }
 
-    private void runConsoleHook(int id, Player reporter, Player target, String reason) {
+    private void runConsoleHook(int id, Player reporter, Player target, String category, String reason, String evidence) {
         String template = plugin.getConfig().getString("integrations.report.console-command", "");
         if (template == null || template.isBlank()) return;
         String command = template.replace("%id%", Integer.toString(id)).replace("%reporter%", reporter.getName())
-                .replace("%target%", target.getName()).replace("%reason%", reason);
+                .replace("%target%", target.getName()).replace("%category%", category)
+                .replace("%reason%", reason).replace("%evidence%", evidence);
         if (command.startsWith("/")) command = command.substring(1);
         try { Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command); }
         catch (Throwable throwable) { plugin.getLogger().warning("Report console hook failed: " + throwable.getMessage()); }
@@ -326,7 +399,7 @@ public final class ReportService {
     public record StaffNote(String at, String staff, String text) { }
     public record AuditEntry(String at, String action, String actor, String detail) { }
     public record ReportEntry(int id, Status status, String createdAt, String reporterName, String reporterUuid,
-                              String targetName, String targetUuid, String reason, String world,
+                              String targetName, String targetUuid, String category, String reason, String evidence, String world,
                               int x, int y, int z, String resolvedAt, String resolvedBy,
                               List<StaffNote> notes, List<AuditEntry> audit) { }
     private record DuplicateMatch(int id, long waitSeconds) { }
