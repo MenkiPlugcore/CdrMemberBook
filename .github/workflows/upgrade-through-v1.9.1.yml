@@ -1,0 +1,68 @@
+name: Upgrade CdrMemberBook through v1.9.1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/upgrade-through-v1.9.1.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Apply v1.8.3 Smart Menu Stability
+        run: python3 .github/scripts/upgrade_v191.py 1.8.3
+      - name: Build v1.8.3
+        run: mvn -B clean package
+      - name: Commit v1.8.3
+        run: |
+          git config user.name "MenkiPlugcore"
+          git config user.email "cfirmansyah327@gmail.com"
+          git add pom.xml README.md CHANGELOG.md src
+          git commit -m "feat: add Smart Menu Stability v1.8.3"
+          git push
+
+      - name: Apply v1.8.4 Report Management
+        run: python3 .github/scripts/upgrade_v191.py 1.8.4
+      - name: Build v1.8.4
+        run: mvn -B clean package
+      - name: Commit v1.8.4
+        run: |
+          git add pom.xml README.md CHANGELOG.md src
+          git commit -m "feat: add Report Management v1.8.4"
+          git push
+
+      - name: Apply v1.9.0 Advanced Menu Actions
+        run: python3 .github/scripts/upgrade_v191.py 1.9.0
+      - name: Build v1.9.0
+        run: mvn -B clean package
+      - name: Commit v1.9.0
+        run: |
+          git add pom.xml README.md CHANGELOG.md src
+          git commit -m "feat: add Advanced Menu Actions v1.9.0"
+          git push
+
+      - name: Apply v1.9.1 Menu Conditions Advanced
+        run: python3 .github/scripts/upgrade_v191.py 1.9.1
+      - name: Build v1.9.1
+        run: mvn -B clean package
+      - name: Commit v1.9.1
+        run: |
+          git add pom.xml README.md CHANGELOG.md src
+          git commit -m "feat: add Menu Conditions Advanced v1.9.1"
+          git push
