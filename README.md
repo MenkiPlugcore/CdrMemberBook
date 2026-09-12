@@ -1,4 +1,4 @@
-# CdrMemberBook v1.9.1
+# CdrMemberBook v1.9.2
 
 Standalone Paper plugin by **CADERA** untuk member menu Minecraft Java + Bedrock. Project ini dipisahkan dari monorepo `MenkiPlugcore/plugin` agar release, maintenance, issue, dan update berikutnya dapat dikelola langsung dari repository ini.
 
@@ -296,3 +296,13 @@ example:
         operator: '!='
         compare: 'default'
 ```
+
+
+## Production Hardening v1.9.2
+
+- Action chain sekarang memiliki click cooldown, batas jumlah action, batas total delay, supersede chain lama, dan opsi `stop-on-error`.
+- `menu.actions.enabled` sekarang benar-benar mematikan advanced action list dan mengembalikan tombol ke legacy action/type.
+- Menu conditions dibatasi jumlah placeholder dan panjang value/result agar expansion/config bermasalah tidak membebani render menu.
+- Report hanya dianggap berhasil setelah `reports.yml` benar-benar tersimpan; mutation resolve/reopen/delete juga melaporkan kegagalan storage.
+- Reason report dibersihkan dari control character sebelum disimpan/log/hook.
+- `/cdrmemberbook health` menampilkan dependency, report count, config version, dan action safety limits.

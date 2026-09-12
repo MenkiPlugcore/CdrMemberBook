@@ -104,12 +104,13 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
         memberBookService.giveToOnlinePlayers();
         memberBookService.startEnforcement();
         getLogger().info("Member Book mode: " + memberBookService.modeName());
-        getLogger().info("CdrMemberBook v1.9.1 enabled.");
+        getLogger().info("CdrMemberBook v1.9.2 enabled.");
     }
 
     @Override
     public void onDisable() {
         if (memberBookService != null) memberBookService.stopEnforcement();
+        if (menuActionService != null) menuActionService.shutdown();
     }
 
     private void migrateAndMergeConfig() {
@@ -249,7 +250,17 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
             getConfig().set("menu.conditions.placeholderapi", true);
         }
 
-        getConfig().set("config-version", 18);
+        if (configVersion < 19) {
+            getConfig().set("menu.actions.click-cooldown-ticks", 10L);
+            getConfig().set("menu.actions.max-actions-per-chain", 32);
+            getConfig().set("menu.actions.max-total-delay-ticks", 1200L);
+            getConfig().set("menu.actions.stop-on-error", false);
+            getConfig().set("menu.conditions.max-placeholder-conditions", 16);
+            getConfig().set("menu.conditions.max-value-length", 512);
+            getConfig().set("integrations.report.sanitize-control-characters", true);
+        }
+
+        getConfig().set("config-version", 19);
         saveConfig();
     }
 
@@ -458,6 +469,7 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         requestManager.removeRequestsFor(event.getPlayer().getUniqueId());
+        if (menuActionService != null) menuActionService.cancel(event.getPlayer().getUniqueId());
     }
 
     @EventHandler

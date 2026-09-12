@@ -1,5 +1,5 @@
-# CdrMemberBook v1.9.1
-config-version: 18
+# CdrMemberBook v1.9.2
+config-version: 19
 prefix: '&8[&dCdrMemberBook&8] &r'
 
 teleport:
@@ -216,6 +216,8 @@ integrations:
     cooldown-seconds: 60
     min-reason-length: 3
     max-reason-length: 200
+    # Bersihkan newline/control character dari alasan sebelum disimpan/log/hook.
+    sanitize-control-characters: true
     # Jumlah report per halaman untuk /cdrmemberbook reports.
     admin-page-size: 8
     staff-permission: 'cdrmemberbook.staff.report'
@@ -249,9 +251,18 @@ menu:
   log-invalid-buttons: true
   actions:
     enabled: true
+    # Anti-spam click untuk action chain. 10 ticks = 0.5 detik.
+    click-cooldown-ticks: 10
+    # Safety caps agar config yang salah tidak membuat chain/scheduler berlebihan.
+    max-actions-per-chain: 32
+    max-total-delay-ticks: 1200
+    # false = action berikutnya tetap dicoba jika satu action gagal.
+    stop-on-error: false
   conditions:
     # Izinkan PlaceholderAPI untuk evaluasi conditions.placeholder(s).
     placeholderapi: true
+    max-placeholder-conditions: 16
+    max-value-length: 512
 
   main:
     title: '&d&lCdrMemberBook &fMenu'
@@ -483,6 +494,8 @@ messages:
   toggle-off: '&cPermintaan teleport sekarang NONAKTIF.'
   no-other-players: '&eTidak ada player lain yang sedang online.'
   action-disabled: '&eFitur ini belum diaktifkan atau command tombol masih kosong.'
+  action-chain-cooldown: '&eTunggu sebentar sebelum menekan action menu lagi.'
+  action-chain-invalid: '&cAction menu diblok karena melewati batas keamanan config.' 
   menu-not-found: '&cMenu/submenu &f%menu% &ctidak ditemukan di config.yml.'
   invalid-button-type: '&cTipe tombol &f%type% &ctidak dikenali.'
   feature-unavailable: '&eFitur ini sedang tidak tersedia karena plugin/command yang dibutuhkan tidak aktif.'

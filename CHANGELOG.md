@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.9.2 - Production Hardening
+
+- Added guarded/cancellable menu action chains with anti-spam cooldown and safety caps.
+- Made `menu.actions.enabled` authoritative at runtime.
+- Added fail-safe and resource limits for advanced menu conditions.
+- Hardened report persistence so success is only returned after a successful disk save.
+- Sanitized report reasons and hardened report admin mutation feedback.
+- Added `/cdrmemberbook health` production diagnostics.
+
+
 ## 1.9.1 - Menu Conditions Advanced
 
 - Added per-button platform, world, extra permission and online-count conditions.

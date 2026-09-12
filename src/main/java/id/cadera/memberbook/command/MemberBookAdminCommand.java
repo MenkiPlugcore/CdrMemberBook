@@ -35,6 +35,7 @@ public final class MemberBookAdminCommand implements CommandExecutor, TabComplet
         String action = args[0].toLowerCase(Locale.ROOT);
         if (action.equals("reports")) { handleReports(sender, args); return true; }
         if (action.equals("report")) { handleReport(sender, args); return true; }
+        if (action.equals("health")) { sendHealth(sender); return true; }
         if (args.length < 2) { sendUsage(sender, label); return true; }
 
         Player target = Bukkit.getPlayerExact(args[1]);
@@ -133,6 +134,7 @@ public final class MemberBookAdminCommand implements CommandExecutor, TabComplet
         if (args.length < 3) { sender.sendMessage(Colors.legacy("&f/cdrmemberbook report <view|resolve|reopen|delete> <id>")); return; }
         int id;
         try { id = Integer.parseInt(args[2]); } catch (NumberFormatException ex) { sender.sendMessage(Colors.legacy("&cID report tidak valid.")); return; }
+        if (id <= 0) { sender.sendMessage(Colors.legacy("&cID report harus lebih dari 0.")); return; }
         String action = args[1].toLowerCase(Locale.ROOT);
         ReportService.ReportEntry e = plugin.reports().get(id);
         if (e == null) { sender.sendMessage(Colors.legacy("&cReport #" + id + " tidak ditemukan.")); return; }
@@ -146,21 +148,43 @@ public final class MemberBookAdminCommand implements CommandExecutor, TabComplet
                 sender.sendMessage(Colors.legacy("&7Waktu: &f" + e.createdAt() + " &8| &7Lokasi: &f" + e.world() + " " + e.x() + "," + e.y() + "," + e.z()));
                 if (e.status() == ReportService.Status.RESOLVED) sender.sendMessage(Colors.legacy("&7Resolved: &f" + e.resolvedBy() + " &8@ &f" + e.resolvedAt()));
             }
-            case "resolve" -> { plugin.reports().resolve(id, staff); sender.sendMessage(Colors.legacy("&aReport #" + id + " ditandai RESOLVED.")); }
-            case "reopen" -> { plugin.reports().reopen(id, staff); sender.sendMessage(Colors.legacy("&eReport #" + id + " dibuka kembali.")); }
-            case "delete" -> { plugin.reports().delete(id); sender.sendMessage(Colors.legacy("&aReport #" + id + " dihapus.")); }
+            case "resolve" -> sender.sendMessage(Colors.legacy(plugin.reports().resolve(id, staff)
+                    ? "&aReport #" + id + " ditandai RESOLVED." : "&cGagal menyimpan perubahan report #" + id + "."));
+            case "reopen" -> sender.sendMessage(Colors.legacy(plugin.reports().reopen(id, staff)
+                    ? "&eReport #" + id + " dibuka kembali." : "&cGagal menyimpan perubahan report #" + id + "."));
+            case "delete" -> sender.sendMessage(Colors.legacy(plugin.reports().delete(id)
+                    ? "&aReport #" + id + " dihapus." : "&cGagal menghapus report #" + id + "."));
             default -> sender.sendMessage(Colors.legacy("&cAction report harus view/resolve/reopen/delete."));
         }
     }
 
-    private String shorten(String value, int max) { return value.length() <= max ? value : value.substring(0, max - 3) + "..."; }
+    private void sendHealth(CommandSender sender) {
+        sender.sendMessage(Colors.legacy("&dCdrMemberBook Health &8- &fv1.9.2"));
+        sender.sendMessage(Colors.legacy("&7Config version: &f" + plugin.getConfig().getInt("config-version", -1)
+                + " &8| &7Actions: &f" + plugin.getConfig().getBoolean("menu.actions.enabled", true)));
+        sender.sendMessage(Colors.legacy("&7Floodgate: &f" + Bukkit.getPluginManager().isPluginEnabled("floodgate")
+                + " &8| &7PlaceholderAPI: &f" + Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")));
+        sender.sendMessage(Colors.legacy("&7EssentialsX: &f" + Bukkit.getPluginManager().isPluginEnabled("Essentials")
+                + " &8| &7AxTrade: &f" + Bukkit.getPluginManager().isPluginEnabled("AxTrade")));
+        sender.sendMessage(Colors.legacy("&7Reports: &f" + plugin.reports().enabled()
+                + " &8| &7Open: &f" + plugin.reports().count(ReportService.Status.OPEN)
+                + " &8| &7Resolved: &f" + plugin.reports().count(ReportService.Status.RESOLVED)));
+        sender.sendMessage(Colors.legacy("&7Action limits: &f" + plugin.getConfig().getInt("menu.actions.max-actions-per-chain", 32)
+                + " actions &8/ &f" + plugin.getConfig().getLong("menu.actions.max-total-delay-ticks", 1200L) + " ticks delay"));
+    }
+
+    private String shorten(String value, int max) {
+        if (value == null) return "";
+        return value.length() <= max ? value : value.substring(0, Math.max(0, max - 3)) + "...";
+    }
 
     private void sendUsage(CommandSender sender, String label) {
-        sender.sendMessage(Colors.legacy("&dCdrMemberBook &fv1.9.1 &8- &7Admin Tools"));
+        sender.sendMessage(Colors.legacy("&dCdrMemberBook &fv1.9.2 &8- &7Admin Tools"));
         sender.sendMessage(Colors.legacy("&f/" + label + " <give|remove|fix|refresh|status|tutorialreset|tutorialshow> <player>"));
         sender.sendMessage(Colors.legacy("&f/" + label + " menudebug <player> [menu] &8- &7cek alasan tombol tampil/hilang"));
         sender.sendMessage(Colors.legacy("&f/" + label + " reports [page] [open|resolved|all] &8- &7list report"));
         sender.sendMessage(Colors.legacy("&f/" + label + " report <view|resolve|reopen|delete> <id>"));
+        sender.sendMessage(Colors.legacy("&f/" + label + " health &8- &7cek dependency + production limits"));
     }
 
     @Override
@@ -169,7 +193,7 @@ public final class MemberBookAdminCommand implements CommandExecutor, TabComplet
         if (!sender.hasPermission(PERMISSION)) return List.of();
         if (args.length == 1) {
             String p = args[0].toLowerCase(Locale.ROOT);
-            return List.of("give","remove","fix","refresh","status","menudebug","tutorialreset","tutorialshow","reports","report")
+            return List.of("give","remove","fix","refresh","status","menudebug","tutorialreset","tutorialshow","reports","report","health")
                     .stream().filter(v -> v.startsWith(p)).toList();
         }
         if (args[0].equalsIgnoreCase("report")) {

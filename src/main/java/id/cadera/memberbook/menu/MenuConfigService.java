@@ -16,6 +16,7 @@ import me.clip.placeholderapi.PlaceholderAPI;
 public final class MenuConfigService {
     private static final Set<String> KNOWN_TYPES = Set.of("command", "teleport", "homes", "pay", "trade", "report", "submenu", "close");
     private static final Set<String> ACTION_TYPES = Set.of("command", "console-command", "message", "sound", "close", "open-menu", "delay");
+    private static final Set<String> CONDITION_OPERATORS = Set.of("==", "=", "equals", "!=", "not_equals", "contains", "not_contains", "starts_with", "ends_with", ">", ">=", "<", "<=");
     private final CdrMemberBookPlugin plugin;
     public MenuConfigService(CdrMemberBookPlugin plugin) { this.plugin = plugin; }
 
@@ -57,6 +58,7 @@ public final class MenuConfigService {
     }
 
     private List<MenuAction> parseActions(ConfigurationSection button) {
+        if (!plugin.getConfig().getBoolean("menu.actions.enabled", true)) return List.of();
         List<MenuAction> actions = new ArrayList<>();
         for (Map<?, ?> raw : button.getMapList("actions")) {
             String type = string(raw.get("type"), "").trim().toLowerCase(Locale.ROOT);
@@ -85,7 +87,12 @@ public final class MenuConfigService {
     public Availability availability(Player player, MenuButton button) {
         for (String p : button.requiredPlugins()) if (p != null && !p.isBlank() && !plugin.getServer().getPluginManager().isPluginEnabled(p.trim())) return new Availability(false,"missing-plugin",p.trim());
         if (button.requiredCommand()!=null && !button.requiredCommand().isBlank() && !commandAvailable(button.requiredCommand())) return new Availability(false,"missing-command",rootCommand(button.requiredCommand()));
-        Availability condition = conditionsAvailability(player, button.conditions());
+        Availability condition;
+        try { condition = conditionsAvailability(player, button.conditions()); }
+        catch (Throwable throwable) {
+            plugin.getLogger().warning("Menu condition evaluation failed [" + button.key() + "]: " + throwable.getMessage());
+            return new Availability(false,"condition-error",throwable.getClass().getSimpleName());
+        }
         if (!condition.available()) return condition;
         if (!button.actions().isEmpty()) return actionsAvailability(button.actions());
         if (!KNOWN_TYPES.contains(button.type())) return new Availability(false,"invalid-type","type="+button.type());
@@ -104,6 +111,9 @@ public final class MenuConfigService {
 
     private Availability conditionsAvailability(Player player, MenuConditions c) {
         if (c == null) return new Availability(true,"ok","no-conditions");
+        int maxPlaceholderConditions = Math.max(1, plugin.getConfig().getInt("menu.conditions.max-placeholder-conditions", 16));
+        if (c.placeholders().size() > maxPlaceholderConditions) return new Availability(false,"condition-too-many","max="+maxPlaceholderConditions);
+        int maxValueLength = Math.max(32, plugin.getConfig().getInt("menu.conditions.max-value-length", 512));
         for (String permission : c.permissions()) if (permission != null && !permission.isBlank() && !player.hasPermission(permission)) return new Availability(false,"condition-permission",permission);
         String platform = c.platform() == null ? "ANY" : c.platform().trim().toUpperCase(Locale.ROOT);
         boolean bedrock = plugin.forms()!=null && plugin.forms().isBedrock(player);
@@ -117,9 +127,14 @@ public final class MenuConfigService {
         if (c.maxOnline() >= 0 && online > c.maxOnline()) return new Availability(false,"condition-online","max="+c.maxOnline());
         if (!c.placeholders().isEmpty() && !plugin.getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) return new Availability(false,"condition-placeholderapi","PlaceholderAPI missing");
         for (PlaceholderCondition p : c.placeholders()) {
+            String op = p.operator() == null ? "==" : p.operator().trim().toLowerCase(Locale.ROOT);
+            if (!CONDITION_OPERATORS.contains(op)) return new Availability(false,"condition-operator-invalid",op);
+            if ((p.value()!=null && p.value().length()>maxValueLength) || (p.compare()!=null && p.compare().length()>maxValueLength))
+                return new Availability(false,"condition-value-too-long","max="+maxValueLength);
             String left = resolveConditionText(player, p.value());
             String right = resolveConditionText(player, p.compare());
-            if (!compare(left, p.operator(), right)) return new Availability(false,"condition-placeholder",p.value()+" "+p.operator()+" "+p.compare()+" (got="+left+")");
+            if (left.length()>maxValueLength || right.length()>maxValueLength) return new Availability(false,"condition-result-too-long","max="+maxValueLength);
+            if (!compare(left, op, right)) return new Availability(false,"condition-placeholder",p.value()+" "+p.operator()+" "+p.compare()+" (got="+left+")");
         }
         return new Availability(true,"ok","conditions-pass");
     }
@@ -151,7 +166,16 @@ public final class MenuConfigService {
     }
 
     private Availability actionsAvailability(List<MenuAction> actions) {
+        int maxActions = Math.max(1, plugin.getConfig().getInt("menu.actions.max-actions-per-chain", 32));
+        if (actions.size() > maxActions) return new Availability(false,"action-chain-too-large","max="+maxActions);
+        long maxDelay = Math.max(0L, plugin.getConfig().getLong("menu.actions.max-total-delay-ticks", 1200L));
+        long totalDelay = 0L;
         for (MenuAction action : actions) {
+            if ("delay".equals(action.type())) {
+                long ticks = Math.max(1L, action.ticks());
+                if (ticks > maxDelay || totalDelay > maxDelay - ticks) return new Availability(false,"action-delay-too-large","max="+maxDelay);
+                totalDelay += ticks;
+            }
             if (!ACTION_TYPES.contains(action.type())) return new Availability(false,"invalid-action","action="+action.type());
             if ((action.type().equals("command") || action.type().equals("console-command")) && plugin.getConfig().getBoolean("menu.auto-detect-command-dependencies",true) && !commandAvailable(action.value())) return new Availability(false,"missing-command",rootCommand(action.value()));
             if (action.type().equals("open-menu") && getMenu(action.value()) == null) return new Availability(false,"missing-submenu",action.value());

@@ -21,7 +21,7 @@ import java.util.UUID;
 public final class ReportService {
     private final CdrMemberBookPlugin plugin;
     private final File file;
-    private final YamlConfiguration data;
+    private YamlConfiguration data;
     private final Map<UUID, Long> cooldownUntil = new HashMap<>();
 
     public ReportService(CdrMemberBookPlugin plugin) {
@@ -30,25 +30,20 @@ public final class ReportService {
         this.data = YamlConfiguration.loadConfiguration(file);
     }
 
-    public boolean enabled() {
-        return plugin.getConfig().getBoolean("integrations.report.enabled", true);
-    }
+    public boolean enabled() { return plugin.getConfig().getBoolean("integrations.report.enabled", true); }
 
     public SubmitResult submit(Player reporter, Player target, String rawReason) {
         if (!enabled()) return new SubmitResult(false, 0, 0, "disabled");
         if (reporter.getUniqueId().equals(target.getUniqueId())) return new SubmitResult(false, 0, 0, "self");
-        String reason = rawReason == null ? "" : rawReason.trim();
+        String reason = sanitizeReason(rawReason);
         int min = Math.max(1, plugin.getConfig().getInt("integrations.report.min-reason-length", 3));
         int max = Math.max(min, plugin.getConfig().getInt("integrations.report.max-reason-length", 200));
         if (reason.length() < min) return new SubmitResult(false, 0, 0, "short");
-        if (reason.length() > max) reason = reason.substring(0, max);
+        if (reason.length() > max) reason = reason.substring(0, max).trim();
 
         long now = System.currentTimeMillis();
         long until = cooldownUntil.getOrDefault(reporter.getUniqueId(), 0L);
-        if (until > now) {
-            long seconds = Math.max(1L, (until - now + 999L) / 1000L);
-            return new SubmitResult(false, 0, seconds, "cooldown");
-        }
+        if (until > now) return new SubmitResult(false, 0, Math.max(1L, (until - now + 999L) / 1000L), "cooldown");
 
         int id = Math.max(1, data.getInt("next-id", 1));
         String base = "reports." + id + ".";
@@ -66,7 +61,10 @@ public final class ReportService {
         data.set(base + "resolved-at", null);
         data.set(base + "resolved-by", null);
         data.set("next-id", id + 1);
-        save();
+        if (!save()) {
+            reloadFromDisk();
+            return new SubmitResult(false, 0, 0, "storage");
+        }
 
         long cooldown = Math.max(0L, plugin.getConfig().getLong("integrations.report.cooldown-seconds", 60L));
         if (cooldown > 0L) cooldownUntil.put(reporter.getUniqueId(), now + cooldown * 1000L);
@@ -77,8 +75,7 @@ public final class ReportService {
     }
 
     public ReportEntry get(int id) {
-        String base = "reports." + id;
-        if (!data.isConfigurationSection(base)) return null;
+        if (id <= 0 || !data.isConfigurationSection("reports." + id)) return null;
         return readEntry(id);
     }
 
@@ -97,38 +94,36 @@ public final class ReportService {
         return List.copyOf(result);
     }
 
-    public int count(Status filter) {
-        return list(filter).size();
-    }
+    public int count(Status filter) { return list(filter).size(); }
 
     public boolean resolve(int id, String staff) {
-        ReportEntry entry = get(id);
-        if (entry == null) return false;
+        if (get(id) == null) return false;
         String base = "reports." + id + ".";
         data.set(base + "status", Status.RESOLVED.name());
         data.set(base + "resolved-at", Instant.now().toString());
-        data.set(base + "resolved-by", staff == null || staff.isBlank() ? "Console" : staff);
-        save();
-        return true;
+        data.set(base + "resolved-by", safeStaff(staff));
+        if (save()) return true;
+        reloadFromDisk();
+        return false;
     }
 
     public boolean reopen(int id, String staff) {
-        ReportEntry entry = get(id);
-        if (entry == null) return false;
+        if (get(id) == null) return false;
         String base = "reports." + id + ".";
         data.set(base + "status", Status.OPEN.name());
         data.set(base + "resolved-at", null);
         data.set(base + "resolved-by", null);
-        save();
-        plugin.getLogger().info("Report #" + id + " reopened by " + (staff == null ? "Console" : staff));
+        if (!save()) { reloadFromDisk(); return false; }
+        plugin.getLogger().info("Report #" + id + " reopened by " + safeStaff(staff));
         return true;
     }
 
     public boolean delete(int id) {
         if (get(id) == null) return false;
         data.set("reports." + id, null);
-        save();
-        return true;
+        if (save()) return true;
+        reloadFromDisk();
+        return false;
     }
 
     public Status parseStatus(String raw) {
@@ -143,8 +138,7 @@ public final class ReportService {
         Status status;
         try { status = Status.valueOf(data.getString(base + "status", "OPEN").toUpperCase(Locale.ROOT)); }
         catch (IllegalArgumentException ignored) { status = Status.OPEN; }
-        return new ReportEntry(id, status,
-                data.getString(base + "created-at", "unknown"),
+        return new ReportEntry(id, status, data.getString(base + "created-at", "unknown"),
                 data.getString(base + "reporter.name", "unknown"), data.getString(base + "reporter.uuid", ""),
                 data.getString(base + "target.name", "unknown"), data.getString(base + "target.uuid", ""),
                 data.getString(base + "reason", ""), data.getString(base + "world", "unknown"),
@@ -152,28 +146,45 @@ public final class ReportService {
                 data.getString(base + "resolved-at", ""), data.getString(base + "resolved-by", ""));
     }
 
+    private String sanitizeReason(String raw) {
+        String input = raw == null ? "" : raw;
+        if (!plugin.getConfig().getBoolean("integrations.report.sanitize-control-characters", true)) return input.trim();
+        StringBuilder out = new StringBuilder(input.length());
+        for (int i = 0; i < input.length(); i++) {
+            char c = input.charAt(i);
+            if (c == '\n' || c == '\r' || c == '\t') out.append(' ');
+            else if (!Character.isISOControl(c)) out.append(c);
+        }
+        return out.toString().replaceAll("\\s+", " ").trim();
+    }
+
+    private String safeStaff(String staff) { return staff == null || staff.isBlank() ? "Console" : staff; }
+
     private void notifyStaff(int id, Player reporter, Player target, String reason) {
         String permission = plugin.getConfig().getString("integrations.report.staff-permission", "cdrmemberbook.staff.report");
-        String message = "&8[&cREPORT #" + id + "&8] &f" + reporter.getName() + " &7melaporkan &f"
-                + target.getName() + "&7: &f" + reason;
-        for (Player online : Bukkit.getOnlinePlayers()) {
-            if (permission == null || permission.isBlank() || online.hasPermission(permission)) online.sendMessage(Colors.legacy(message));
-        }
+        String message = "&8[&cREPORT #" + id + "&8] &f" + reporter.getName() + " &7melaporkan &f" + target.getName() + "&7: &f" + reason;
+        for (Player online : Bukkit.getOnlinePlayers()) if (permission == null || permission.isBlank() || online.hasPermission(permission)) online.sendMessage(Colors.legacy(message));
     }
 
     private void runConsoleHook(int id, Player reporter, Player target, String reason) {
         String template = plugin.getConfig().getString("integrations.report.console-command", "");
         if (template == null || template.isBlank()) return;
         String command = template.replace("%id%", Integer.toString(id)).replace("%reporter%", reporter.getName())
-                .replace("%target%", target.getName()).replace("%reason%", reason.replace('\n', ' '));
+                .replace("%target%", target.getName()).replace("%reason%", reason);
         if (command.startsWith("/")) command = command.substring(1);
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+        try { Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command); }
+        catch (Throwable throwable) { plugin.getLogger().warning("Report console hook failed: " + throwable.getMessage()); }
     }
 
-    private void save() {
-        try { data.save(file); }
-        catch (IOException exception) { plugin.getLogger().warning("Could not save reports.yml: " + exception.getMessage()); }
+    private boolean save() {
+        try { data.save(file); return true; }
+        catch (IOException exception) {
+            plugin.getLogger().severe("Could not save reports.yml: " + exception.getMessage());
+            return false;
+        }
     }
+
+    private void reloadFromDisk() { data = YamlConfiguration.loadConfiguration(file); }
 
     public enum Status { OPEN, RESOLVED }
     public record SubmitResult(boolean success, int id, long waitSeconds, String reasonCode) { }
