@@ -84,7 +84,7 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(memberBookService, this);
         memberBookService.giveToOnlinePlayers();
         memberBookService.startEnforcement();
-        getLogger().info("CdrMemberBook v1.3.1 enabled.");
+        getLogger().info("CdrMemberBook v1.3.2 enabled.");
     }
 
     private void migrateAndMergeConfig() {
@@ -118,8 +118,17 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
             migrateSpecialButton("sethome", "sethome", "homes", "homes");
             migrateSpecialButton("transfer", "pay", "pay", "pay");
             migrateSpecialButton("barter", "trade", "trade", "axtrade");
-            getConfig().set("config-version", 3);
         }
+
+        if (configVersion < 4) {
+            // v1.3.2: Member Book is movable inside the player's own inventory.
+            // External storage is protected instead of locking one hotbar slot.
+            getConfig().set("member-book.permanent-hotbar", false);
+            getConfig().set("member-book.prevent-move", false);
+            getConfig().set("member-book.prevent-external-storage", true);
+        }
+
+        getConfig().set("config-version", 4);
         saveConfig();
     }
 
