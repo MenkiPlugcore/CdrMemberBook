@@ -6,7 +6,7 @@
 
     <groupId>id.cadera</groupId>
     <artifactId>CdrMemberBook</artifactId>
-    <version>1.4.1</version>
+    <version>1.5.0</version>
     <name>CdrMemberBook</name>
     <description>Config-driven Bedrock/Java member menu with native TP, homes, pay and trade flows for MOONSIGN.</description>
 
@@ -28,6 +28,10 @@
             <id>essentialsx-releases</id>
             <url>https://repo.essentialsx.net/releases/</url>
         </repository>
+        <repository>
+            <id>placeholderapi</id>
+            <url>https://repo.helpch.at/releases</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -47,6 +51,12 @@
             <groupId>net.essentialsx</groupId>
             <artifactId>EssentialsX</artifactId>
             <version>2.21.2</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>me.clip</groupId>
+            <artifactId>placeholderapi</artifactId>
+            <version>2.12.3</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

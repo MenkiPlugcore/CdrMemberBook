@@ -2,6 +2,7 @@ package id.cadera.memberbook.item;
 
 import id.cadera.memberbook.CdrMemberBookPlugin;
 import id.cadera.memberbook.util.Colors;
+import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -48,6 +49,7 @@ public final class MemberBookService implements Listener {
     private final NamespacedKey bookKey;
     private final Set<UUID> recoverySuppressed = new HashSet<>();
     private BukkitTask enforcementTask;
+    private BukkitTask dynamicRefreshTask;
 
     public MemberBookService(CdrMemberBookPlugin plugin) {
         this.plugin = plugin;
@@ -57,16 +59,30 @@ public final class MemberBookService implements Listener {
     public void startEnforcement() {
         stopEnforcement();
         if (!isEnabled()) return;
-        if (!isPermanentHotbar() && !recoveryEnabled()) return;
 
-        long configuredPeriod = isPermanentHotbar()
-                ? plugin.getConfig().getLong("member-book.enforce-interval-ticks", 20L)
-                : plugin.getConfig().getLong("member-book.recovery.interval-ticks", 100L);
-        long period = Math.max(20L, configuredPeriod);
+        if (isPermanentHotbar() || recoveryEnabled()) {
+            long configuredPeriod = isPermanentHotbar()
+                    ? plugin.getConfig().getLong("member-book.enforce-interval-ticks", 20L)
+                    : plugin.getConfig().getLong("member-book.recovery.interval-ticks", 100L);
+            long period = Math.max(20L, configuredPeriod);
 
-        enforcementTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            enforcementTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    syncBookState(player, false);
+                }
+            }, period, period);
+        }
+
+        startDynamicRefresh();
+    }
+
+    private void startDynamicRefresh() {
+        if (!dynamicEnabled()) return;
+        long period = Math.max(40L, plugin.getConfig().getLong(
+                "member-book.dynamic.refresh-interval-ticks", 200L));
+        dynamicRefreshTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             for (Player player : Bukkit.getOnlinePlayers()) {
-                syncBookState(player, false);
+                refreshDynamicBook(player);
             }
         }, period, period);
     }
@@ -79,6 +95,10 @@ public final class MemberBookService implements Listener {
         if (enforcementTask != null) {
             enforcementTask.cancel();
             enforcementTask = null;
+        }
+        if (dynamicRefreshTask != null) {
+            dynamicRefreshTask.cancel();
+            dynamicRefreshTask = null;
         }
     }
 
@@ -197,7 +217,7 @@ public final class MemberBookService implements Listener {
         }
 
         if (!hasOwned && allowCreate) {
-            hasOwned = placeBookInPlayer(player, createBook());
+            hasOwned = placeBookInPlayer(player, createBook(player));
             if (!hasOwned && notifyFull) plugin.message(player, "member-book-inventory-full");
         }
 
@@ -268,8 +288,8 @@ public final class MemberBookService implements Listener {
         }
 
         int sourceSlot = findStorageBookSlot(inventory, slot);
-        ItemStack book = sourceSlot >= 0 ? inventory.getItem(sourceSlot) : createBook();
-        if (book == null) book = createBook();
+        ItemStack book = sourceSlot >= 0 ? inventory.getItem(sourceSlot) : createBook(player);
+        if (book == null) book = createBook(player);
 
         if (current != null && !current.getType().isAir()) {
             if (sourceSlot >= 0) {
@@ -351,26 +371,27 @@ public final class MemberBookService implements Listener {
         return isMemberBook(player.getItemOnCursor());
     }
 
-    private ItemStack createBook() {
+    private ItemStack createBook(Player player) {
         String materialName = plugin.getConfig().getString("member-book.material", "BOOK");
         Material material = materialName == null ? Material.BOOK : Material.matchMaterial(materialName);
         if (material == null) material = Material.BOOK;
 
         ItemStack item = new ItemStack(material);
-        applyConfiguredAppearance(item);
+        applyConfiguredAppearance(item, player);
         return item;
     }
 
-    private void applyConfiguredAppearance(ItemStack item) {
+    private void applyConfiguredAppearance(ItemStack item, Player player) {
         ItemMeta meta = item.getItemMeta();
         if (meta == null) return;
 
-        meta.setDisplayName(Colors.legacy(plugin.getConfig().getString(
-                "member-book.name", "&d&lMOONSIGN &fMember Book")));
+        String configuredName = plugin.getConfig().getString(
+                "member-book.name", "&d&lMOONSIGN &fMember Book");
+        meta.setDisplayName(Colors.legacy(renderDynamicText(player, configuredName)));
 
         List<String> lore = new ArrayList<>();
         for (String line : plugin.getConfig().getStringList("member-book.lore")) {
-            lore.add(Colors.legacy(line));
+            lore.add(Colors.legacy(renderDynamicText(player, line)));
         }
         meta.setLore(lore.isEmpty() ? null : lore);
 
@@ -415,29 +436,70 @@ public final class MemberBookService implements Listener {
         item.setItemMeta(meta);
     }
 
-    private void refreshVisibleBookAppearance(Player player) {
+    public void refreshVisibleBookAppearance(Player player) {
         PlayerInventory inventory = player.getInventory();
         for (int slot = 0; slot < inventory.getSize(); slot++) {
             ItemStack current = inventory.getItem(slot);
-            if (isMemberBook(current)) inventory.setItem(slot, refreshedBook());
+            if (isMemberBook(current)) inventory.setItem(slot, refreshedBook(player));
         }
 
         ItemStack cursor = player.getItemOnCursor();
-        if (isMemberBook(cursor)) player.setItemOnCursor(refreshedBook());
+        if (isMemberBook(cursor)) player.setItemOnCursor(refreshedBook(player));
 
         if (isExternalView(player)) {
             Inventory top = player.getOpenInventory().getTopInventory();
             for (int slot = 0; slot < top.getSize(); slot++) {
                 ItemStack current = top.getItem(slot);
-                if (isMemberBook(current)) top.setItem(slot, refreshedBook());
+                if (isMemberBook(current)) top.setItem(slot, refreshedBook(player));
             }
         }
     }
 
-    private ItemStack refreshedBook() {
-        ItemStack refreshed = createBook();
+    private ItemStack refreshedBook(Player player) {
+        ItemStack refreshed = createBook(player);
         refreshed.setAmount(1);
         return refreshed;
+    }
+
+    public boolean refreshDynamicBook(Player player) {
+        if (!dynamicEnabled() || !isEligibleForBook(player)
+                || recoverySuppressed.contains(player.getUniqueId()) || !hasOwnedBook(player)) {
+            return false;
+        }
+        refreshVisibleBookAppearance(player);
+        return true;
+    }
+
+    private String renderDynamicText(Player player, String value) {
+        if (value == null || value.isEmpty()) return "";
+        String rendered = value;
+
+        if (plugin.getConfig().getBoolean("member-book.dynamic.built-in-placeholders", true)) {
+            rendered = rendered
+                    .replace("%player%", player.getName())
+                    .replace("%uuid%", player.getUniqueId().toString())
+                    .replace("%world%", player.getWorld().getName())
+                    .replace("%ping%", Integer.toString(player.getPing()))
+                    .replace("%online%", Integer.toString(Bukkit.getOnlinePlayers().size()));
+        }
+
+        if (placeholderApiEnabled()
+                && plugin.getConfig().getBoolean("member-book.dynamic.placeholderapi", true)) {
+            try {
+                rendered = PlaceholderAPI.setPlaceholders(player, rendered);
+            } catch (Throwable ignored) {
+                // Keep built-in/original text if PlaceholderAPI or an expansion fails.
+            }
+        }
+        return rendered;
+    }
+
+    private boolean placeholderApiEnabled() {
+        return Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
+    }
+
+    private boolean dynamicEnabled() {
+        return plugin.getConfig().getBoolean("member-book.dynamic.enabled", true);
     }
 
     private boolean refreshExistingEnabled() {
@@ -513,7 +575,10 @@ public final class MemberBookService implements Listener {
         long delay = Math.max(1L, plugin.getConfig().getLong("member-book.give-delay-ticks", 10L));
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (!player.isOnline()) return;
-            if (isEligibleForBook(player) && refreshExistingEnabled()) refreshVisibleBookAppearance(player);
+            if (isEligibleForBook(player) && (refreshExistingEnabled()
+                    || plugin.getConfig().getBoolean("member-book.dynamic.refresh-on-join", true))) {
+                refreshVisibleBookAppearance(player);
+            }
             syncBookState(player, true);
         }, delay);
     }
@@ -532,7 +597,12 @@ public final class MemberBookService implements Listener {
         if (!recoverOnWorldChange()) return;
         Player player = event.getPlayer();
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (player.isOnline()) syncBookState(player, false);
+            if (!player.isOnline()) return;
+            if (dynamicEnabled() && plugin.getConfig().getBoolean(
+                    "member-book.dynamic.refresh-on-world-change", true)) {
+                refreshDynamicBook(player);
+            }
+            syncBookState(player, false);
         }, 1L);
     }
 

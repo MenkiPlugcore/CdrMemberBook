@@ -1,4 +1,4 @@
-# CdrMemberBook v1.4.1
+# CdrMemberBook v1.5.0
 
 Standalone Paper plugin by **CADERA** untuk member menu Minecraft Java + Bedrock. Project ini dipisahkan dari monorepo `MenkiPlugcore/plugin` agar release, maintenance, issue, dan update berikutnya dapat dikelola langsung dari repository ini.
 
@@ -27,6 +27,29 @@ Standalone Paper plugin by **CADERA** untuk member menu Minecraft Java + Bedrock
 - Shift-click, drag, hotbar-number swap, offhand swap, hopper/container transfer, hopper pickup, dan dispenser ikut diproteksi.
 - Member Book tetap tidak dapat dibuang jika `prevent-drop: true`.
 - Safety recovery otomatis memulihkan buku yang hilang dan membersihkan duplikat.
+
+## Dynamic Member Book
+
+`v1.5.0` mendukung placeholder pada `member-book.name` dan setiap baris `member-book.lore`. Placeholder bawaan `%player%`, `%uuid%`, `%world%`, `%ping%`, dan `%online%` bekerja tanpa dependency tambahan. Jika PlaceholderAPI terpasang, placeholder dari expansion lain juga dapat dipakai.
+
+```yaml
+member-book:
+  name: '&d&lMOONSIGN &f%player%'
+  lore:
+    - '&7Rank: &f%luckperms_prefix%'
+    - '&7Balance: &a%vault_eco_balance_formatted%'
+    - '&7Ping: &f%ping%ms'
+    - '&7Online: &f%online%'
+  dynamic:
+    enabled: true
+    placeholderapi: true
+    built-in-placeholders: true
+    refresh-interval-ticks: 200
+    refresh-on-join: true
+    refresh-on-world-change: true
+```
+
+PlaceholderAPI bersifat optional/soft dependency. Expansion seperti LuckPerms/Vault tetap harus tersedia agar placeholder masing-masing dapat di-resolve. Gunakan `/cdrmemberbook refresh <player>` untuk refresh manual.
 
 ## Book Customization
 
@@ -152,7 +175,7 @@ mvn clean package
 Output:
 
 ```text
-target/CdrMemberBook-1.4.1.jar
+target/CdrMemberBook-1.5.0.jar
 ```
 
 ## Migration

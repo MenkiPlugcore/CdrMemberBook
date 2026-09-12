@@ -79,13 +79,19 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
             getLogger().info("Floodgate not detected: Java inventory fallback only.");
         }
 
+        if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            getLogger().info("PlaceholderAPI detected: Dynamic Member Book placeholders enabled.");
+        } else {
+            getLogger().info("PlaceholderAPI not detected: Dynamic Member Book will use built-in placeholders only.");
+        }
+
         registerCommands();
         Bukkit.getPluginManager().registerEvents(this, this);
         Bukkit.getPluginManager().registerEvents(javaMenuService, this);
         Bukkit.getPluginManager().registerEvents(memberBookService, this);
         memberBookService.giveToOnlinePlayers();
         memberBookService.startEnforcement();
-        getLogger().info("CdrMemberBook v1.4.1 enabled.");
+        getLogger().info("CdrMemberBook v1.5.0 enabled.");
     }
 
     @Override
@@ -151,7 +157,16 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
             getConfig().set("member-book.customization.refresh-existing", true);
         }
 
-        getConfig().set("config-version", 6);
+        if (configVersion < 7) {
+            getConfig().set("member-book.dynamic.enabled", true);
+            getConfig().set("member-book.dynamic.placeholderapi", true);
+            getConfig().set("member-book.dynamic.built-in-placeholders", true);
+            getConfig().set("member-book.dynamic.refresh-interval-ticks", 200L);
+            getConfig().set("member-book.dynamic.refresh-on-join", true);
+            getConfig().set("member-book.dynamic.refresh-on-world-change", true);
+        }
+
+        getConfig().set("config-version", 7);
         saveConfig();
     }
 

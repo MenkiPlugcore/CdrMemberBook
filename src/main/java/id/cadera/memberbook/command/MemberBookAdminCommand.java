@@ -82,16 +82,32 @@ public final class MemberBookAdminCommand implements CommandExecutor, TabComplet
                             + target.getName() + "&e karena penuh."));
                 }
             }
+            case "refresh" -> {
+                if (!service.isEligibleForBook(target)) {
+                    sender.sendMessage(Colors.legacy("&e" + target.getName()
+                            + " &cbukan player yang eligible menerima Member Book (default: Bedrock/Floodgate only)."));
+                    return true;
+                }
+                boolean success = service.refreshDynamicBook(target);
+                if (success) {
+                    sender.sendMessage(Colors.legacy("&aDynamic Member Book &f" + target.getName()
+                            + " &aberhasil direfresh."));
+                } else {
+                    sender.sendMessage(Colors.legacy("&eTidak ada Member Book aktif yang bisa direfresh untuk &f"
+                            + target.getName() + "&e."));
+                }
+            }
             default -> sendUsage(sender, label);
         }
         return true;
     }
 
     private void sendUsage(CommandSender sender, String label) {
-        sender.sendMessage(Colors.legacy("&dCdrMemberBook &fv1.4.0 &8- &7Admin Recovery"));
+        sender.sendMessage(Colors.legacy("&dCdrMemberBook &fv1.5.0 &8- &7Admin Recovery"));
         sender.sendMessage(Colors.legacy("&f/" + label + " give <player> &8- &7pastikan player punya satu buku"));
         sender.sendMessage(Colors.legacy("&f/" + label + " remove <player> &8- &7hapus buku dan tahan recovery sampai relog"));
         sender.sendMessage(Colors.legacy("&f/" + label + " fix <player> &8- &7bersihkan duplicate + recovery"));
+        sender.sendMessage(Colors.legacy("&f/" + label + " refresh <player> &8- &7refresh placeholder nama/lore"));
     }
 
     @Override
@@ -102,7 +118,7 @@ public final class MemberBookAdminCommand implements CommandExecutor, TabComplet
         if (args.length == 1) {
             String prefix = args[0].toLowerCase(Locale.ROOT);
             List<String> result = new ArrayList<>();
-            for (String sub : List.of("give", "remove", "fix")) {
+            for (String sub : List.of("give", "remove", "fix", "refresh")) {
                 if (sub.startsWith(prefix)) result.add(sub);
             }
             return result;

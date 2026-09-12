@@ -1,5 +1,5 @@
-# CdrMemberBook v1.4.1
-config-version: 6
+# CdrMemberBook v1.5.0
+config-version: 7
 prefix: '&8[&dMOONSIGN&8] &r'
 
 teleport:
@@ -28,7 +28,7 @@ bedrock-icons:
   trade-deny: textures/items/barrier
 
 # Member Book automatically opens the member menu on right click.
-# Default v1.4.1: buku bebas dipindahkan di inventory player sendiri,
+# Default v1.5.0: buku bebas dipindahkan di inventory player sendiri,
 # tetapi tidak bisa disimpan ke chest, ender chest, PlayerVaults, shulker,
 # plugin GUI, atau inventory lain di luar inventory player.
 member-book:
@@ -37,7 +37,7 @@ member-book:
   give-on-join: true
   give-delay-ticks: 10
   permanent-hotbar: false
-  # Legacy compatibility option. Mode default v1.4.1 tidak mengunci perpindahan internal.
+  # Legacy compatibility option. Mode default v1.5.0 tidak mengunci perpindahan internal.
   prevent-move: false
   prevent-external-storage: true
   # Dipakai oleh mode legacy permanent-hotbar.
@@ -82,6 +82,19 @@ member-book:
     item-flags: []
     # Buku lama milik player online otomatis mengikuti tampilan config terbaru saat reload/join.
     refresh-existing: true
+
+  # Dynamic Member Book v1.5.0
+  dynamic:
+    enabled: true
+    # PlaceholderAPI bersifat optional. Jika tidak terpasang, placeholder bawaan tetap bekerja.
+    placeholderapi: true
+    built-in-placeholders: true
+    # 200 ticks = 10 detik. Minimum internal 40 ticks agar tetap ringan.
+    refresh-interval-ticks: 200
+    refresh-on-join: true
+    refresh-on-world-change: true
+    # Built-in placeholders: %player%, %uuid%, %world%, %ping%, %online%
+    # PlaceholderAPI examples: %luckperms_prefix%, %vault_eco_balance_formatted%, dll.
 
 # Native integrations used by the Bedrock click-only flows.
 integrations:

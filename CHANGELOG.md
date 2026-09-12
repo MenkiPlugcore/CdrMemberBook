@@ -6,6 +6,20 @@
 - Plugin identity, Maven artifact, Java main class, dan Java package diganti menjadi CdrMemberBook.
 - Permission prefix lama `moonsignmenu.*` tetap dipertahankan sementara untuk kompatibilitas server yang sudah berjalan.
 
+## 1.5.0 — Dynamic Member Book
+
+- Added optional PlaceholderAPI integration for dynamic Member Book name and lore.
+- Added built-in placeholders `%player%`, `%uuid%`, `%world%`, `%ping%`, and `%online%` that work even without PlaceholderAPI.
+- Added lightweight scheduled dynamic refresh; default interval is 200 ticks (10 seconds), with a 40-tick internal minimum.
+- Added `member-book.dynamic.enabled`, `placeholderapi`, `built-in-placeholders`, `refresh-interval-ticks`, `refresh-on-join`, and `refresh-on-world-change`.
+- PlaceholderAPI is a soft dependency; CdrMemberBook remains functional when it is not installed.
+- Dynamic refresh only updates eligible players that already own a Member Book and never bypasses Bedrock-only eligibility or admin recovery suppression.
+- Added `/cdrmemberbook refresh <player>` for manual placeholder/lore refresh.
+- Existing Safety & Recovery and Book Customization PDC identity/protections remain intact after every dynamic refresh.
+- Config migration v6 -> v7 automatically adds dynamic defaults without changing existing name/lore text.
+- Added PlaceholderAPI 2.12.3 as a provided Maven dependency; it is not bundled into the plugin jar.
+- Version bumped to `1.5.0`.
+
 ## 1.4.1 — Book Customization
 
 - Added configurable `custom-model-data` for legacy/custom resource-pack item models.
