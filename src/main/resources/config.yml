@@ -1,5 +1,5 @@
-# CdrMemberBook v1.10.0
-config-version: 26
+# CdrMemberBook v1.11.0
+config-version: 27
 prefix: '&8[&dCdrMemberBook&8] &r'
 
 teleport:
@@ -272,6 +272,13 @@ integrations:
       java-note-placeholder: 'Ketik catatan staff...'
       detail-note-limit: 3
       detail-audit-limit: 5
+
+# Native admin editor untuk menu/button. Membuka lewat /cdrmemberbook menueditor.
+admin-menu-editor:
+  enabled: true
+  permission: 'cdrmemberbook.admin.memberbook'
+  # Safety cap agar salah klik tidak membuat ratusan button tanpa sengaja.
+  max-buttons-per-menu: 100
 
 # Per-player preferences. Data tersimpan ringan di plugins/CdrMemberBook/preferences.yml.
 preferences:

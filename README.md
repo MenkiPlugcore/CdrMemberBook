@@ -1,4 +1,4 @@
-# CdrMemberBook v1.10.0
+# CdrMemberBook v1.11.0
 
 Standalone Paper plugin by **CADERA** for a configurable Minecraft Java + Bedrock member menu.
 
@@ -39,6 +39,17 @@ The default values remain server-configurable under `preferences.defaults.*`. Ex
 - Bedrock Pay and AxTrade click-first flows.
 - Member Book modes, recovery, customization, and dynamic placeholders.
 - Native Java + Bedrock report system and Staff Report Center.
+
+
+## Admin Menu Editor — v1.11.0
+
+Open with:
+
+```text
+/cdrmemberbook menueditor
+```
+
+Permission: `cdrmemberbook.admin.memberbook`. Java uses inventory + Anvil UI; Bedrock uses native Floodgate Forms. The editor manages existing menus and can create/delete buttons, toggle them, change type/name/command/icon/material/permission/order/lore/submenu, plus required command/plugins and platform/world/permission/online-count conditions. Existing advanced action chains and PlaceholderAPI condition maps are preserved when other fields are edited. Changes are validated and saved directly to `config.yml`; no server restart is required.
 
 ## Report QoL & Audit — v1.9.5
 

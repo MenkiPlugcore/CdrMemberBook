@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.11.0 - Admin Menu Editor
+
+- Added `/cdrmemberbook menueditor` using the existing `cdrmemberbook.admin.memberbook` permission.
+- Added native Java inventory + Anvil admin editor and native Bedrock Floodgate Forms editor.
+- Added existing-menu selector and button create/edit/toggle/delete flows.
+- Added editing for name, type, command, Java material, Bedrock icon, permission, order, lore and submenu target.
+- Added dependency/condition editing for required command/plugins, platform, worlds, excluded worlds, extra permissions and min/max online.
+- Added validation for button keys, material names, submenu references, numeric bounds and per-menu button safety cap.
+- Existing action chains and PlaceholderAPI condition maps remain untouched by unrelated edits.
+- Changes save directly to config.yml and menu validation runs immediately without restart.
+- Config migrated to version 27.
+
+
 ## 1.10.0 - Player Preferences
 
 - Added lightweight persistent `preferences.yml` storage per player UUID.

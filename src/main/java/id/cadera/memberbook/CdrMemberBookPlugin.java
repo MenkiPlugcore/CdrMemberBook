@@ -10,6 +10,7 @@ import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import id.cadera.memberbook.command.MemberBookAdminCommand;
+import id.cadera.memberbook.admin.AdminMenuEditorService;
 import id.cadera.memberbook.command.MenuCommand;
 import id.cadera.memberbook.command.TeleportCommands;
 import id.cadera.memberbook.form.BedrockFormService;
@@ -41,6 +42,7 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
     private FirstJoinTutorialService tutorialService;
     private ReportService reportService;
     private PreferenceService preferenceService;
+    private AdminMenuEditorService adminMenuEditorService;
     private NamespacedKey playerKey;
     private NamespacedKey buttonKey;
 
@@ -55,6 +57,7 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
         menuConfigService = new MenuConfigService(this);
         menuActionService = new MenuActionService(this);
         preferenceService = new PreferenceService(this);
+        adminMenuEditorService = new AdminMenuEditorService(this);
         ToggleStore toggleStore = new ToggleStore(this);
         requestManager = new TeleportRequestManager(this, toggleStore);
         javaMenuService = new JavaMenuService(this);
@@ -100,6 +103,7 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
         registerCommands();
         Bukkit.getPluginManager().registerEvents(this, this);
         Bukkit.getPluginManager().registerEvents(javaMenuService, this);
+        Bukkit.getPluginManager().registerEvents(adminMenuEditorService, this);
         Bukkit.getPluginManager().registerEvents(memberBookService, this);
         Bukkit.getPluginManager().registerEvents(tutorialService, this);
         memberBookService.validateConfiguration();
@@ -107,7 +111,7 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
         memberBookService.giveToOnlinePlayers();
         memberBookService.startEnforcement();
         getLogger().info("Member Book mode: " + memberBookService.modeName());
-        getLogger().info("CdrMemberBook v1.10.0 enabled.");
+        getLogger().info("CdrMemberBook v1.11.0 enabled.");
     }
 
     @Override
@@ -343,7 +347,13 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
             }
         }
 
-        getConfig().set("config-version", 26);
+        if (configVersion < 27) {
+            getConfig().set("admin-menu-editor.enabled", true);
+            getConfig().set("admin-menu-editor.permission", "cdrmemberbook.admin.memberbook");
+            getConfig().set("admin-menu-editor.max-buttons-per-menu", 100);
+        }
+
+        getConfig().set("config-version", 27);
         saveConfig();
     }
 
@@ -471,6 +481,10 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
 
     public PreferenceService preferences() {
         return preferenceService;
+    }
+
+    public AdminMenuEditorService menuEditor() {
+        return adminMenuEditorService;
     }
 
     public FirstJoinTutorialService tutorial() {

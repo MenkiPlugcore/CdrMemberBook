@@ -36,6 +36,11 @@ public final class MemberBookAdminCommand implements CommandExecutor, TabComplet
         if (action.equals("reports")) { handleReports(sender, args); return true; }
         if (action.equals("report")) { handleReport(sender, args); return true; }
         if (action.equals("health")) { sendHealth(sender); return true; }
+        if (action.equals("menueditor")) {
+            if (!(sender instanceof Player player)) { sender.sendMessage(Colors.legacy("&cMenu Editor hanya bisa dibuka oleh player.")); return true; }
+            plugin.menuEditor().open(player);
+            return true;
+        }
         if (args.length < 2) { sendUsage(sender, label); return true; }
 
         Player target = Bukkit.getPlayerExact(args[1]);
@@ -242,7 +247,7 @@ public final class MemberBookAdminCommand implements CommandExecutor, TabComplet
     }
 
     private void sendHealth(CommandSender sender) {
-        sender.sendMessage(Colors.legacy("&dCdrMemberBook Health &8- &fv1.10.0"));
+        sender.sendMessage(Colors.legacy("&dCdrMemberBook Health &8- &fv1.11.0"));
         sender.sendMessage(Colors.legacy("&7Config version: &f" + plugin.getConfig().getInt("config-version", -1)
                 + " &8| &7Actions: &f" + plugin.getConfig().getBoolean("menu.actions.enabled", true)));
         sender.sendMessage(Colors.legacy("&7Floodgate: &f" + Bukkit.getPluginManager().isPluginEnabled("floodgate")
@@ -262,9 +267,10 @@ public final class MemberBookAdminCommand implements CommandExecutor, TabComplet
     }
 
     private void sendUsage(CommandSender sender, String label) {
-        sender.sendMessage(Colors.legacy("&dCdrMemberBook &fv1.10.0 &8- &7Admin Tools"));
+        sender.sendMessage(Colors.legacy("&dCdrMemberBook &fv1.11.0 &8- &7Admin Tools"));
         sender.sendMessage(Colors.legacy("&f/" + label + " <give|remove|fix|refresh|status|tutorialreset|tutorialshow> <player>"));
         sender.sendMessage(Colors.legacy("&f/" + label + " menudebug <player> [menu] &8- &7cek alasan tombol tampil/hilang"));
+        sender.sendMessage(Colors.legacy("&f/" + label + " menueditor &8- &7buka Admin Menu Editor Java/Bedrock"));
         sender.sendMessage(Colors.legacy("&f/" + label + " reports [page] [open|resolved|all] &8- &7list report"));
         sender.sendMessage(Colors.legacy("&f/" + label + " reports <search|recent|player|category> ... &8- &7QoL report lookup"));
         sender.sendMessage(Colors.legacy("&f/" + label + " report <view|resolve|reopen|delete|note|audit> <id> [text]"));
@@ -277,7 +283,7 @@ public final class MemberBookAdminCommand implements CommandExecutor, TabComplet
         if (!sender.hasPermission(PERMISSION)) return List.of();
         if (args.length == 1) {
             String p = args[0].toLowerCase(Locale.ROOT);
-            return List.of("give","remove","fix","refresh","status","menudebug","tutorialreset","tutorialshow","reports","report","health")
+            return List.of("give","remove","fix","refresh","status","menudebug","menueditor","tutorialreset","tutorialshow","reports","report","health")
                     .stream().filter(v -> v.startsWith(p)).toList();
         }
         if (args[0].equalsIgnoreCase("report")) {
