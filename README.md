@@ -1,4 +1,4 @@
-# CdrMemberBook v1.3.1
+# CdrMemberBook v1.3.2
 
 Standalone Paper plugin by **CADERA** untuk member menu Minecraft Java + Bedrock. Project ini dipisahkan dari monorepo `MenkiPlugcore/plugin` agar release, maintenance, issue, dan update berikutnya dapat dikelola langsung dari repository ini.
 
@@ -21,7 +21,29 @@ Standalone Paper plugin by **CADERA** untuk member menu Minecraft Java + Bedrock
 - Tambah/hapus/edit/reorder tombol tanpa compile ulang.
 - Button types: `command`, `teleport`, `homes`, `pay`, `trade`, `submenu`, `close`.
 - `/menu reload` untuk menerapkan perubahan config tanpa restart.
-- Member Book Bedrock-only dan permanent hotbar dapat diatur lewat `config.yml`.
+- Member Book Bedrock-only dapat diatur lewat `config.yml`.
+- Member Book bebas dipindah di inventory/hotbar player sendiri.
+- Member Book tidak dapat dimasukkan ke chest, ender chest, shulker, PlayerVaults/PV, plugin GUI, atau inventory eksternal lain.
+- Shift-click, drag, hotbar-number swap, dan offhand swap ke inventory eksternal ikut diproteksi.
+- Member Book tetap tidak dapat dibuang jika `prevent-drop: true`.
+
+## Member Book Storage Protection
+
+Default v1.3.2 menggunakan mode movable:
+
+```yaml
+member-book:
+  enabled: true
+  bedrock-only: true
+  give-on-join: true
+  permanent-hotbar: false
+  prevent-move: false
+  prevent-external-storage: true
+  hotbar-slot: 8
+  prevent-drop: true
+```
+
+`hotbar-slot` hanya menjadi slot awal ketika buku pertama kali diberikan. Setelah itu player bebas memindahkan buku ke slot inventory miliknya sendiri.
 
 ## Bedrock Home Manager
 
@@ -81,9 +103,11 @@ mvn clean package
 Output:
 
 ```text
-target/CdrMemberBook-1.3.1.jar
+target/CdrMemberBook-1.3.2.jar
 ```
 
 ## Migration
 
 Source awal project ini berasal dari `plugins/MoonSignMenu` pada repository `MenkiPlugcore/plugin`. Mulai sekarang pengembangan CdrMemberBook dilakukan di repository standalone ini.
+
+Saat upgrade dari config v3 ke v4, plugin otomatis mengubah Member Book ke mode movable dan mengaktifkan `prevent-external-storage`.
