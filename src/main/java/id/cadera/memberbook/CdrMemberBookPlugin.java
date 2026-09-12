@@ -17,6 +17,7 @@ import id.cadera.memberbook.gui.JavaMenuService;
 import id.cadera.memberbook.integration.EssentialsHomeService;
 import id.cadera.memberbook.item.MemberBookService;
 import id.cadera.memberbook.menu.MenuConfigService;
+import id.cadera.memberbook.menu.MenuActionService;
 import id.cadera.memberbook.menu.MenuConfigService.MenuButton;
 import id.cadera.memberbook.report.ReportService;
 import id.cadera.memberbook.tp.TeleportRequestManager;
@@ -34,6 +35,7 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
     private JavaMenuService javaMenuService;
     private MemberBookService memberBookService;
     private MenuConfigService menuConfigService;
+    private MenuActionService menuActionService;
     private EssentialsHomeService essentialsHomeService;
     private FirstJoinTutorialService tutorialService;
     private ReportService reportService;
@@ -49,6 +51,7 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
         buttonKey = new NamespacedKey(this, "menu-button");
 
         menuConfigService = new MenuConfigService(this);
+        menuActionService = new MenuActionService(this);
         ToggleStore toggleStore = new ToggleStore(this);
         requestManager = new TeleportRequestManager(this, toggleStore);
         javaMenuService = new JavaMenuService(this);
@@ -101,7 +104,7 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
         memberBookService.giveToOnlinePlayers();
         memberBookService.startEnforcement();
         getLogger().info("Member Book mode: " + memberBookService.modeName());
-        getLogger().info("CdrMemberBook v1.8.4 enabled.");
+        getLogger().info("CdrMemberBook v1.9.0 enabled.");
     }
 
     @Override
@@ -238,7 +241,11 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
             getConfig().set("integrations.report.admin-page-size", 8);
         }
 
-        getConfig().set("config-version", 16);
+        if (configVersion < 17) {
+            getConfig().set("menu.actions.enabled", true);
+        }
+
+        getConfig().set("config-version", 17);
         saveConfig();
     }
 
@@ -314,12 +321,12 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
         memberBookCommand.setTabCompleter(memberBookAdmin);
     }
 
-    public void openMenu(Player player) {
-        if (formService != null && formService.isBedrock(player)) {
-            formService.showMainMenu(player);
-        } else {
-            javaMenuService.showMain(player);
-        }
+    public void openMenu(Player player) { openMenu(player, "main"); }
+
+    public void openMenu(Player player, String menuId) {
+        String id = menuId == null || menuId.isBlank() ? "main" : menuId;
+        if (formService != null && formService.isBedrock(player)) formService.showConfiguredMenu(player, id);
+        else javaMenuService.showConfiguredMenu(player, id, 0);
     }
 
     public void reloadCdrMemberBookConfig() {
@@ -351,6 +358,8 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
     public MenuConfigService menus() {
         return menuConfigService;
     }
+
+    public MenuActionService menuActions() { return menuActionService; }
 
     public EssentialsHomeService homes() {
         return essentialsHomeService;
@@ -392,6 +401,12 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
                 .replace("%uuid%", player.getUniqueId().toString())
                 .replace("%world%", player.getWorld().getName());
         dispatchCommand(player, command, button.executor());
+    }
+
+    public void dispatchActionCommand(Player player, String template, String executor) {
+        if (template == null || template.isBlank()) { message(player, "action-disabled"); return; }
+        String command = template.replace("%player%", player.getName()).replace("%uuid%", player.getUniqueId().toString()).replace("%world%", player.getWorld().getName());
+        dispatchCommand(player, command, executor);
     }
 
     public void dispatchPlayerTemplate(Player player, String template, Map<String, String> placeholders) {

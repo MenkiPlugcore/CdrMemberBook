@@ -1,5 +1,5 @@
-# CdrMemberBook v1.8.4
-config-version: 16
+# CdrMemberBook v1.9.0
+config-version: 17
 prefix: '&8[&dCdrMemberBook&8] &r'
 
 teleport:
@@ -231,6 +231,8 @@ integrations:
 #   trade    = native Bedrock AxTrade send/accept/deny/toggle flow
 #   submenu  = open a submenu from menu.submenus
 #   close    = close the menu
+# Advanced actions v1.9.0: optional `actions:` list overrides legacy single action.
+# Types: command, console-command, message, sound, close, open-menu, delay.
 #
 # For Java players, homes/pay/trade use their configured `command` as fallback.
 # executor: player (default) or console
@@ -243,6 +245,8 @@ menu:
   auto-detect-command-dependencies: true
   # Warning startup/reload untuk type/material/submenu config yang salah.
   log-invalid-buttons: true
+  actions:
+    enabled: true
 
   main:
     title: '&d&lCdrMemberBook &fMenu'

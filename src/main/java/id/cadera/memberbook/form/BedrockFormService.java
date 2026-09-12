@@ -133,6 +133,11 @@ public final class BedrockFormService {
             return;
         }
 
+        if (button.actions() != null && !button.actions().isEmpty()) {
+            plugin.menuActions().execute(player, button.actions());
+            return;
+        }
+
         switch (button.type().toLowerCase(Locale.ROOT)) {
             case "command" -> plugin.executeMenuCommand(player, button);
             case "teleport" -> showTeleportForm(player, menu.id());

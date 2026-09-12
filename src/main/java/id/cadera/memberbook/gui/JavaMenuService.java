@@ -184,6 +184,11 @@ public final class JavaMenuService implements Listener {
             return;
         }
 
+        if (button.actions() != null && !button.actions().isEmpty()) {
+            plugin.menuActions().execute(player, button.actions());
+            return;
+        }
+
         switch (button.type().toLowerCase(Locale.ROOT)) {
             case "command" -> {
                 player.closeInventory();

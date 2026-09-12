@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.9.0 - Advanced Menu Actions
+
+- Buttons can execute ordered action chains instead of one command.
+- Action types: command, console-command, message, sound, close, open-menu and delay.
+- Action chains keep legacy single-command buttons fully compatible.
+
+
 ## 1.8.4 - Report Management
 
 - Added report status lifecycle: OPEN/RESOLVED with resolver and timestamp.
