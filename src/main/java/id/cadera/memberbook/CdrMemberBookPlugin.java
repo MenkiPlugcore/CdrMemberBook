@@ -97,10 +97,11 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(memberBookService, this);
         Bukkit.getPluginManager().registerEvents(tutorialService, this);
         memberBookService.validateConfiguration();
+        menuConfigService.validateConfiguration();
         memberBookService.giveToOnlinePlayers();
         memberBookService.startEnforcement();
         getLogger().info("Member Book mode: " + memberBookService.modeName());
-        getLogger().info("CdrMemberBook v1.8.2 enabled.");
+        getLogger().info("CdrMemberBook v1.8.3 enabled.");
     }
 
     @Override
@@ -229,7 +230,11 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
             migrateLegacyBranding();
         }
 
-        getConfig().set("config-version", 14);
+        if (configVersion < 15) {
+            getConfig().set("menu.log-invalid-buttons", true);
+        }
+
+        getConfig().set("config-version", 15);
         saveConfig();
     }
 
@@ -317,6 +322,7 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
         reloadConfig();
         if (memberBookService != null) {
             memberBookService.validateConfiguration();
+            menuConfigService.validateConfiguration();
             memberBookService.restartEnforcement();
             memberBookService.giveToOnlinePlayers();
         }

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.8.3 - Smart Menu Stability
+
+- Added `/cdrmemberbook menudebug <player> [menu]` with explicit visibility/dependency reasons.
+- Added startup/reload menu configuration validation and warnings.
+- Dead buttons now expose structured availability codes for debugging.
+
+
 ## 1.8.2 - Full CdrMemberBook Rebrand
 
 - Removed remaining server-specific branding and legacy permission aliases from the current plugin tree.

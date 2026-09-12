@@ -1,5 +1,5 @@
-# CdrMemberBook v1.8.2
-config-version: 14
+# CdrMemberBook v1.8.3
+config-version: 15
 prefix: '&8[&dCdrMemberBook&8] &r'
 
 teleport:
@@ -239,6 +239,8 @@ menu:
   hide-unavailable-buttons: true
   # Untuk type: command, command root dicek otomatis. Contoh /bank tidak ada -> tombol Bank hilang.
   auto-detect-command-dependencies: true
+  # Warning startup/reload untuk type/material/submenu config yang salah.
+  log-invalid-buttons: true
 
   main:
     title: '&d&lCdrMemberBook &fMenu'
