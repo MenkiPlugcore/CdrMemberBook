@@ -1,0 +1,58 @@
+name: CdrMemberBook
+version: '1.3.1'
+main: id.cadera.memberbook.CdrMemberBookPlugin
+api-version: '1.21'
+author: CADERA
+description: Config-driven Bedrock/Java member menu with native TP, homes, pay and AxTrade flows for MOONSIGN.
+softdepend:
+  - floodgate
+  - Essentials
+  - AxTrade
+
+commands:
+  menu:
+    description: Open MOONSIGN member menu or reload its config.
+    usage: /menu [reload]
+    permission: moonsignmenu.menu
+  tpa:
+    description: Request teleport to another player.
+    usage: /tpa <player>
+    permission: moonsignmenu.tpa
+  tpahere:
+    description: Request another player to teleport to you.
+    usage: /tpahere <player>
+    permission: moonsignmenu.tpahere
+  tpaccept:
+    description: Accept your pending teleport request.
+    usage: /tpaccept
+    aliases: [tpyes]
+    permission: moonsignmenu.tpaccept
+  tpdeny:
+    description: Deny your pending teleport request.
+    usage: /tpdeny
+    aliases: [tpno]
+    permission: moonsignmenu.tpdeny
+  tptoggle:
+    description: Enable or disable incoming teleport requests.
+    usage: /tptoggle
+    permission: moonsignmenu.tptoggle
+
+permissions:
+  moonsignmenu.menu:
+    default: true
+  moonsignmenu.tpa:
+    default: true
+  moonsignmenu.tpahere:
+    default: true
+  moonsignmenu.tpaccept:
+    default: true
+  moonsignmenu.tpdeny:
+    default: true
+  moonsignmenu.tptoggle:
+    default: true
+  moonsignmenu.admin.reload:
+    default: op
+  moonsignmenu.bypass.cooldown:
+    default: op
+  moonsignmenu.bypass.disabled:
+    default: op

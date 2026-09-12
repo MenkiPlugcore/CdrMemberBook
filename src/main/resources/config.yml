@@ -1,0 +1,321 @@
+# CdrMemberBook v1.3.1
+config-version: 3
+prefix: '&8[&dMOONSIGN&8] &r'
+
+teleport:
+  request-expire-seconds: 30
+  request-cooldown-seconds: 5
+  cancel-on-world-change: true
+  block-cross-world: false
+  sounds:
+    request: BLOCK_NOTE_BLOCK_PLING
+    accepted: ENTITY_PLAYER_LEVELUP
+    denied: BLOCK_NOTE_BLOCK_BASS
+
+# Icons for built-in Bedrock pages.
+bedrock-icons:
+  enabled: true
+  tpa: textures/items/ender_pearl
+  tpahere: textures/items/lead
+  toggle: textures/items/lever
+  player: textures/items/name_tag
+  back: textures/items/arrow
+  home: textures/items/bed_red
+  home-add: textures/items/bed_red
+  delete: textures/items/barrier
+  trade-send: textures/items/emerald
+  trade-accept: textures/items/slimeball
+  trade-deny: textures/items/barrier
+
+# Member Book automatically opens the member menu on right click.
+# Default v1.3.1: khusus Bedrock dan slot hotbar paling kanan (index 8) dikunci untuk buku.
+member-book:
+  enabled: true
+  bedrock-only: true
+  give-on-join: true
+  give-delay-ticks: 10
+  permanent-hotbar: true
+  prevent-move: true
+  enforce-interval-ticks: 20
+  hotbar-slot: 8
+  prevent-drop: true
+  material: BOOK
+  name: '&d&lMOONSIGN &fMember Book'
+  lore:
+  - '&7Klik kanan untuk membuka Menu Member.'
+  - '&8Item menu pribadi MOONSIGN.'
+
+# Native integrations used by the Bedrock click-only flows.
+integrations:
+  essentials-home:
+    # Home list + max home are read directly from EssentialsX.
+    # Commands are still executed as the player so Essentials permissions/cooldowns stay active.
+    set-command: 'sethome %home%'
+    teleport-command: 'home %home%'
+    delete-command: 'delhome %home%'
+
+  pay:
+    # %target% = selected online player, %amount% = manually entered nominal.
+    command: 'pay %target% %amount%'
+
+  axtrade:
+    # AxTrade canonical commands. If you changed its aliases, edit these templates.
+    send-command: 'axtrade %target%'
+    accept-command: 'axtrade accept %target%'
+    deny-command: 'axtrade deny %target%'
+    toggle-command: 'axtrade toggle'
+
+# Fully config-driven member menu.
+# Button types:
+#   command  = run any player/console command
+#   teleport = open CdrMemberBook's built-in TPA flow
+#   homes    = native Bedrock EssentialsX Home Manager
+#   pay      = native Bedrock player picker + manual nominal input
+#   trade    = native Bedrock AxTrade send/accept/deny/toggle flow
+#   submenu  = open a submenu from menu.submenus
+#   close    = close the menu
+#
+# For Java players, homes/pay/trade use their configured `command` as fallback.
+# executor: player (default) or console
+# Placeholders in names/commands: %player%, %world%; commands also support %uuid%.
+menu:
+  hide-buttons-without-permission: true
+
+  main:
+    title: '&d&lMOONSIGN &fMenu Member'
+    content: '&7Pilih fitur yang ingin kamu buka.'
+    buttons:
+      teleport:
+        enabled: true
+        name: '&bMinta TP'
+        type: teleport
+        order: 10
+        icon: textures/items/ender_pearl
+        java-material: ENDER_PEARL
+        permission: ''
+        lore:
+        - '&7Minta teleport ke player lain.'
+
+      warp:
+        enabled: true
+        name: Warp
+        type: command
+        command: warp
+        executor: player
+        order: 20
+        icon: textures/items/compass_item
+        java-material: COMPASS
+        permission: ''
+
+      pwarp:
+        enabled: true
+        name: Player Warp
+        type: command
+        command: pwarp
+        executor: player
+        order: 30
+        icon: textures/items/map_filled
+        java-material: FILLED_MAP
+        permission: ''
+
+      sethome:
+        enabled: true
+        name: Home
+        type: homes
+        # Fallback untuk Java player.
+        command: homes
+        executor: player
+        order: 40
+        icon: textures/items/bed_red
+        java-material: RED_BED
+        permission: ''
+        lore:
+        - '&7Set, lihat, teleport, dan hapus home.'
+        - '&7Bedrock: full klik tanpa ketik command.'
+
+      land:
+        enabled: true
+        name: Tanah
+        type: command
+        command: claimslist
+        executor: player
+        order: 50
+        icon: textures/items/map_empty
+        java-material: GRASS_BLOCK
+        permission: ''
+
+      transfer:
+        enabled: true
+        name: Transfer
+        type: pay
+        # Fallback untuk Java player.
+        command: pay
+        executor: player
+        order: 60
+        icon: textures/items/paper
+        java-material: PAPER
+        permission: ''
+        lore:
+        - '&7Bedrock: pilih player lalu ketik nominal.'
+
+      bank:
+        enabled: true
+        name: Bank
+        type: command
+        command: bank
+        executor: player
+        order: 70
+        icon: textures/items/gold_ingot
+        java-material: GOLD_INGOT
+        permission: ''
+
+      team:
+        enabled: true
+        name: Party
+        type: command
+        command: party
+        executor: player
+        order: 80
+        icon: textures/items/iron_sword
+        java-material: IRON_SWORD
+        permission: ''
+
+      shop:
+        enabled: true
+        name: Shop
+        type: command
+        # Sesuaikan jika command pembuka DGShop berbeda.
+        command: shop
+        executor: player
+        order: 90
+        icon: textures/items/nether_star
+        java-material: NETHER_STAR
+        permission: ''
+
+      playershop:
+        enabled: true
+        name: Player Shop
+        type: command
+        command: ah
+        executor: player
+        order: 100
+        icon: textures/items/name_tag
+        java-material: NAME_TAG
+        permission: ''
+
+      report:
+        enabled: true
+        name: Lapor
+        type: command
+        command: report
+        executor: player
+        order: 110
+        icon: textures/items/book_writable
+        java-material: WRITABLE_BOOK
+        permission: ''
+
+      barter:
+        enabled: true
+        name: Barter
+        type: trade
+        # Fallback untuk Java player.
+        command: axtrade
+        executor: player
+        order: 120
+        icon: textures/items/lead
+        java-material: LEAD
+        permission: ''
+        lore:
+        - '&7Bedrock: kirim/terima/tolak trade dengan klik.'
+
+      player-menu:
+        enabled: false
+        name: Menu Player
+        type: submenu
+        submenu: player
+        order: 130
+        icon: textures/items/name_tag
+        java-material: PLAYER_HEAD
+        permission: ''
+
+      close:
+        enabled: true
+        name: Tutup
+        type: close
+        order: 999
+        icon: textures/items/barrier
+        java-material: BARRIER
+        permission: ''
+
+  submenus:
+    player:
+      title: '&dMenu Player'
+      content: '&7Fitur pribadi player.'
+      back-menu: main
+      buttons:
+        homes:
+          enabled: true
+          name: Homes
+          type: homes
+          command: homes
+          executor: player
+          order: 10
+          icon: textures/items/bed_red
+          java-material: RED_BED
+          permission: ''
+
+        balance:
+          enabled: true
+          name: Balance
+          type: command
+          command: balance
+          executor: player
+          order: 20
+          icon: textures/items/gold_ingot
+          java-material: GOLD_INGOT
+          permission: ''
+
+        enderchest:
+          enabled: true
+          name: Ender Chest
+          type: command
+          command: ec
+          executor: player
+          order: 30
+          icon: textures/blocks/ender_chest_front
+          java-material: ENDER_CHEST
+          permission: ''
+
+messages:
+  no-permission: '&cKamu tidak punya izin untuk melakukan itu.'
+  player-only: '&cCommand ini hanya untuk player.'
+  player-not-found: '&cPlayer tidak ditemukan atau sedang offline.'
+  cannot-target-self: '&cKamu tidak bisa mengirim request TP ke diri sendiri.'
+  requests-disabled: '&c%player% sedang menonaktifkan permintaan teleport.'
+  target-has-request: '&e%player% sudah punya permintaan teleport yang belum selesai.'
+  cooldown: '&eTunggu &f%seconds%s &esebelum mengirim permintaan TP lagi.'
+  request-sent-to: '&aPermintaan dikirim. &fKamu meminta teleport ke &d%player%&f.'
+  request-sent-here: '&aPermintaan dikirim. &fKamu meminta &d%player% &fteleport ke kamu.'
+  request-received-to: '&d%player% &fmeminta teleport ke lokasimu.'
+  request-received-here: '&d%player% &fmeminta kamu teleport ke lokasinya.'
+  request-expired-sender: '&ePermintaan teleport ke &f%player% &etelah kedaluwarsa.'
+  request-expired-target: '&ePermintaan teleport dari &f%player% &etelah kedaluwarsa.'
+  no-pending-request: '&cTidak ada permintaan teleport yang menunggu.'
+  request-accepted: '&aPermintaan teleport diterima.'
+  request-denied: '&cPermintaan teleport ditolak.'
+  target-denied: '&c%player% menolak permintaan teleportmu.'
+  teleported: '&aTeleport berhasil.'
+  cross-world-blocked: '&cPermintaan teleport lintas world dinonaktifkan.'
+  toggle-on: '&aPermintaan teleport sekarang AKTIF.'
+  toggle-off: '&cPermintaan teleport sekarang NONAKTIF.'
+  no-other-players: '&eTidak ada player lain yang sedang online.'
+  action-disabled: '&eFitur ini belum diaktifkan atau command tombol masih kosong.'
+  menu-not-found: '&cMenu/submenu &f%menu% &ctidak ditemukan di config.yml.'
+  invalid-button-type: '&cTipe tombol &f%type% &ctidak dikenali.'
+  config-reloaded: '&aConfig CdrMemberBook berhasil direload.'
+  member-book-cannot-drop: '&eMember Book tidak dapat dibuang.'
+  member-book-inventory-full: '&eInventory penuh. Kosongkan satu slot agar Member Book bisa diberikan.'
+  home-integration-unavailable: '&cHome Manager membutuhkan EssentialsX yang aktif.'
+  home-limit-reached: '&eSlot home penuh: &f%used%/%max%&e.'
+  invalid-home-name: '&cNama home hanya boleh huruf, angka, _ atau - (maks 32 karakter).'
+  invalid-pay-amount: '&cNominal tidak valid. Contoh: 10000 atau 10.000.'
