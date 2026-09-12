@@ -1,5 +1,5 @@
-# CdrMemberBook v1.8.3
-config-version: 15
+# CdrMemberBook v1.8.4
+config-version: 16
 prefix: '&8[&dCdrMemberBook&8] &r'
 
 teleport:
@@ -216,6 +216,8 @@ integrations:
     cooldown-seconds: 60
     min-reason-length: 3
     max-reason-length: 200
+    # Jumlah report per halaman untuk /cdrmemberbook reports.
+    admin-page-size: 8
     staff-permission: 'cdrmemberbook.staff.report'
     # Optional hook setelah report tersimpan. Placeholder: %id%, %reporter%, %target%, %reason%.
     console-command: ''

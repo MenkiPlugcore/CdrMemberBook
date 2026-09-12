@@ -1,4 +1,4 @@
-# CdrMemberBook v1.8.3
+# CdrMemberBook v1.8.4
 
 Standalone Paper plugin by **CADERA** untuk member menu Minecraft Java + Bedrock. Project ini dipisahkan dari monorepo `MenkiPlugcore/plugin` agar release, maintenance, issue, dan update berikutnya dapat dikelola langsung dari repository ini.
 

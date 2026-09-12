@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.8.4 - Report Management
+
+- Added report status lifecycle: OPEN/RESOLVED with resolver and timestamp.
+- Added admin list/view/resolve/reopen/delete commands.
+- Existing report files remain readable; entries without status are treated as OPEN.
+
+
 ## 1.8.3 - Smart Menu Stability
 
 - Added `/cdrmemberbook menudebug <player> [menu]` with explicit visibility/dependency reasons.
