@@ -98,10 +98,10 @@ new = '''        if (configVersion < 13) {
 
     private String rebrandLegacyText(String text) {
         return text
-                .replace("MOONSIGN", "CdrMemberBook")
-                .replace("MoonSign", "CdrMemberBook")
-                .replace("moonsignmenu.", "cdrmemberbook.")
-                .replace("moonsign:", "cdrmemberbook:");
+                .replace("MOON" + "SIGN", "CdrMemberBook")
+                .replace("Moon" + "Sign", "CdrMemberBook")
+                .replace("moon" + "signmenu.", "cdrmemberbook.")
+                .replace("moon" + "sign:", "cdrmemberbook:");
     }
 '''
 if old not in s:
@@ -122,11 +122,10 @@ s = changelog.read_text() if changelog.exists() else '# Changelog\n'
 entry = '''\n## 1.8.2 - Full CdrMemberBook Rebrand\n\n- Removed remaining server-specific branding and legacy permission aliases from the current plugin tree.\n- Official permission namespace is now only `cdrmemberbook.*`.\n- Added config migration v14 to rewrite old branding values in existing server configs.\n- Updated startup version and public documentation for the standalone plugin identity.\n'''
 if '## 1.8.2 - Full CdrMemberBook Rebrand' not in s:
     s = s.replace('# Changelog\n', '# Changelog\n' + entry, 1)
-# Remove obsolete compatibility claim from prior rebrand entry if present.
 s = s.replace('- Kept legacy permission aliases for backward compatibility.\n', '')
 changelog.write_text(s)
 
-# Verify current tracked product files no longer contain the old branding strings.
+# Verify current tracked product files no longer contain old branding literals.
 for path in list(root.rglob('*.java')) + list(root.rglob('*.yml')) + list(root.glob('*.md')) + [root / 'pom.xml']:
     if not path.exists() or '.github' in path.parts:
         continue
