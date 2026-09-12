@@ -8,14 +8,14 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
-import org.bukkit.event.player.PlayerSwapHandItemsEvent;
-import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -38,6 +38,11 @@ public final class MemberBookService implements Listener {
     }
 
     public void startEnforcement() {
+        // Periodic enforcement is only needed for the legacy locked-hotbar mode.
+        // A movable book may temporarily sit on the cursor; enforcing while that happens
+        // could create a duplicate because cursor items are not part of PlayerInventory contents.
+        if (!isEnabled() || !isPermanentHotbar()) return;
+
         long period = Math.max(5L, plugin.getConfig().getLong("member-book.enforce-interval-ticks", 20L));
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             for (Player player : Bukkit.getOnlinePlayers()) {
@@ -207,21 +212,30 @@ public final class MemberBookService implements Listener {
     }
 
     private boolean shouldMaintain() {
-        return plugin.getConfig().getBoolean("member-book.permanent-hotbar", true)
+        return isPermanentHotbar()
                 || plugin.getConfig().getBoolean("member-book.give-on-join", true);
     }
 
     private boolean isPermanentHotbar() {
-        return plugin.getConfig().getBoolean("member-book.permanent-hotbar", true);
+        return plugin.getConfig().getBoolean("member-book.permanent-hotbar", false);
     }
 
-    private boolean preventMove() {
-        return plugin.getConfig().getBoolean("member-book.prevent-move", true);
+    private boolean preventExternalStorage() {
+        return plugin.getConfig().getBoolean("member-book.prevent-external-storage", true);
     }
 
     private int reservedSlot() {
         int configuredSlot = plugin.getConfig().getInt("member-book.hotbar-slot", 8);
         return Math.max(0, Math.min(8, configuredSlot));
+    }
+
+    private boolean hasExternalTopInventory(InventoryClickEvent event) {
+        InventoryType type = event.getView().getTopInventory().getType();
+        return type != InventoryType.CRAFTING && type != InventoryType.CREATIVE;
+    }
+
+    private void denyExternalStorage(Player player) {
+        plugin.message(player, "member-book-external-storage-blocked");
     }
 
     @EventHandler
@@ -245,7 +259,7 @@ public final class MemberBookService implements Listener {
 
     @EventHandler
     public void onInteract(PlayerInteractEvent event) {
-        if (!isEligible(event.getPlayer()) || event.getHand() != EquipmentSlot.HAND) return;
+        if (!isEligible(event.getPlayer())) return;
         Action action = event.getAction();
         if (action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK) return;
         if (!isMemberBook(event.getItem())) return;
@@ -257,52 +271,66 @@ public final class MemberBookService implements Listener {
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) return;
-        if (!isEligible(player) || !preventMove()) return;
+        if (!isEligible(player) || !preventExternalStorage()) return;
 
-        int reserved = reservedSlot();
-        boolean clickedReserved = isPermanentHotbar()
-                && event.getClickedInventory() == player.getInventory()
-                && event.getSlot() == reserved;
-        boolean hotbarSwapTouchesReserved = isPermanentHotbar() && event.getHotbarButton() == reserved;
-        boolean touchesBook = isMemberBook(event.getCurrentItem()) || isMemberBook(event.getCursor());
+        boolean cursorBook = isMemberBook(event.getCursor());
+        boolean currentBook = isMemberBook(event.getCurrentItem());
+        boolean clickedOwnInventory = event.getClickedInventory() == player.getInventory();
+        boolean clickedForeignInventory = event.getClickedInventory() != null && !clickedOwnInventory;
 
-        if (clickedReserved || hotbarSwapTouchesReserved || touchesBook) {
+        // Normal cursor placement into chest, ender chest, shulker, PlayerVaults,
+        // plugin GUIs, crafting/result inventories, or any other non-player inventory.
+        if (cursorBook && clickedForeignInventory) {
             event.setCancelled(true);
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                if (player.isOnline()) ensureBook(player);
-            });
+            denyExternalStorage(player);
+            return;
+        }
+
+        // Shift-click from the player's inventory automatically targets the top inventory.
+        if (currentBook && clickedOwnInventory && event.isShiftClick() && hasExternalTopInventory(event)) {
+            event.setCancelled(true);
+            denyExternalStorage(player);
+            return;
+        }
+
+        // Number-key swaps can move a hotbar item directly into the clicked external slot.
+        int hotbarButton = event.getHotbarButton();
+        if (clickedForeignInventory && hotbarButton >= 0
+                && isMemberBook(player.getInventory().getItem(hotbarButton))) {
+            event.setCancelled(true);
+            denyExternalStorage(player);
+            return;
+        }
+
+        // F/offhand swap while hovering an external inventory slot can also insert the book.
+        if (clickedForeignInventory && event.getClick() == ClickType.SWAP_OFFHAND
+                && isMemberBook(player.getInventory().getItemInOffHand())) {
+            event.setCancelled(true);
+            denyExternalStorage(player);
+            return;
+        }
+
+        // Clicking outside the inventory with the book on cursor would drop it.
+        if (event.getClickedInventory() == null && cursorBook
+                && plugin.getConfig().getBoolean("member-book.prevent-drop", true)) {
+            event.setCancelled(true);
+            plugin.message(player, "member-book-cannot-drop");
         }
     }
 
     @EventHandler
     public void onInventoryDrag(InventoryDragEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) return;
-        if (!isEligible(player) || !preventMove()) return;
+        if (!isEligible(player) || !preventExternalStorage()) return;
+        if (!isMemberBook(event.getOldCursor())) return;
 
-        if (isMemberBook(event.getOldCursor())) {
-            event.setCancelled(true);
-            return;
-        }
-
-        if (!isPermanentHotbar()) return;
-        int reserved = reservedSlot();
         int topSize = event.getView().getTopInventory().getSize();
         for (int rawSlot : event.getRawSlots()) {
-            if (rawSlot >= topSize && event.getView().convertSlot(rawSlot) == reserved) {
+            if (rawSlot < topSize) {
                 event.setCancelled(true);
-                Bukkit.getScheduler().runTask(plugin, () -> {
-                    if (player.isOnline()) ensureBook(player);
-                });
+                denyExternalStorage(player);
                 return;
             }
-        }
-    }
-
-    @EventHandler
-    public void onSwapHands(PlayerSwapHandItemsEvent event) {
-        if (!isEligible(event.getPlayer()) || !preventMove()) return;
-        if (isMemberBook(event.getMainHandItem()) || isMemberBook(event.getOffHandItem())) {
-            event.setCancelled(true);
         }
     }
 
