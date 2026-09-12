@@ -111,7 +111,7 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
         memberBookService.giveToOnlinePlayers();
         memberBookService.startEnforcement();
         getLogger().info("Member Book mode: " + memberBookService.modeName());
-        getLogger().info("CdrMemberBook v1.11.0 enabled.");
+        getLogger().info("CdrMemberBook v1.11.0.1 enabled.");
     }
 
     @Override
@@ -353,7 +353,16 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
             getConfig().set("admin-menu-editor.max-buttons-per-menu", 100);
         }
 
-        getConfig().set("config-version", 27);
+        if (configVersion < 28) {
+            String material = getConfig().getString("member-book.material", "BOOK");
+            if (material == null || material.isBlank() || material.equalsIgnoreCase("BOOK")) {
+                getConfig().set("member-book.material", "WRITABLE_BOOK");
+            }
+            getConfig().set("member-book.interaction.hand-fallback", true);
+            getConfig().set("member-book.interaction.bedrock-open-delay-ticks", 1L);
+        }
+
+        getConfig().set("config-version", 28);
         saveConfig();
     }
 

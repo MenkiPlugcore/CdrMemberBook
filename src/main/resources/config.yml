@@ -1,5 +1,5 @@
-# CdrMemberBook v1.11.0
-config-version: 27
+# CdrMemberBook v1.11.0.1
+config-version: 28
 prefix: '&8[&dCdrMemberBook&8] &r'
 
 teleport:
@@ -65,6 +65,13 @@ member-book:
   # Anti double-open form. 20 ticks = 1 detik; 0 = nonaktif.
   open-cooldown-ticks: 20
 
+  # Bedrock Interaction Hotfix v1.11.0.1
+  interaction:
+    # Jika Geyser mengirim PlayerInteractEvent tanpa event item, cek item di hand player.
+    hand-fallback: true
+    # Kirim Floodgate Form satu tick setelah use-item agar tidak bentrok dengan transaksi Bedrock.
+    bedrock-open-delay-ticks: 1
+
   # Safety & Recovery v1.4.0
   recovery:
     # Memulihkan buku yang hilang karena /clear, plugin lain, atau bug inventory.
@@ -78,7 +85,8 @@ member-book:
     # Bersihkan copy ganda di inventory/cursor player.
     remove-duplicates: true
 
-  material: BOOK
+  # WRITABLE_BOOK reliably produces a Bedrock/Geyser use-item interaction.
+  material: WRITABLE_BOOK
   name: '&d&lCdrMemberBook'
   lore:
   - '&7Klik kanan untuk membuka Menu Member.'

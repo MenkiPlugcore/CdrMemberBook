@@ -30,6 +30,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -398,9 +399,9 @@ public final class MemberBookService implements Listener {
     }
 
     private ItemStack createBook(Player player) {
-        String materialName = plugin.getConfig().getString("member-book.material", "BOOK");
-        Material material = materialName == null ? Material.BOOK : Material.matchMaterial(materialName);
-        if (material == null) material = Material.BOOK;
+        String materialName = plugin.getConfig().getString("member-book.material", "WRITABLE_BOOK");
+        Material material = materialName == null ? Material.WRITABLE_BOOK : Material.matchMaterial(materialName);
+        if (material == null) material = Material.WRITABLE_BOOK;
 
         ItemStack item = new ItemStack(material);
         applyConfiguredAppearance(item, player);
@@ -730,7 +731,16 @@ public final class MemberBookService implements Listener {
         if (!isEligibleForBook(player)) return;
         Action action = event.getAction();
         if (action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK) return;
-        if (!isMemberBook(event.getItem())) return;
+
+        ItemStack interacted = event.getItem();
+        if (!isMemberBook(interacted)
+                && plugin.getConfig().getBoolean("member-book.interaction.hand-fallback", true)) {
+            EquipmentSlot hand = event.getHand();
+            interacted = hand == EquipmentSlot.OFF_HAND
+                    ? player.getInventory().getItemInOffHand()
+                    : player.getInventory().getItemInMainHand();
+        }
+        if (!isMemberBook(interacted)) return;
 
         event.setCancelled(true);
         UUID uuid = player.getUniqueId();
@@ -739,7 +749,18 @@ public final class MemberBookService implements Listener {
             if (!menuOpenCooldown.add(uuid)) return;
             Bukkit.getScheduler().runTaskLater(plugin, () -> menuOpenCooldown.remove(uuid), cooldownTicks);
         }
-        plugin.openMenu(player);
+
+        boolean bedrock = plugin.forms() != null && plugin.forms().isBedrock(player);
+        long openDelay = bedrock
+                ? Math.max(0L, plugin.getConfig().getLong("member-book.interaction.bedrock-open-delay-ticks", 1L))
+                : 0L;
+        if (openDelay > 0L) {
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (player.isOnline()) plugin.openMenu(player);
+            }, openDelay);
+        } else {
+            plugin.openMenu(player);
+        }
     }
 
     @EventHandler

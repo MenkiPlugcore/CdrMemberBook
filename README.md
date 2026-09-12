@@ -1,4 +1,4 @@
-# CdrMemberBook v1.11.0
+# CdrMemberBook v1.11.0.1
 
 Standalone Paper plugin by **CADERA** for a configurable Minecraft Java + Bedrock member menu.
 
@@ -41,7 +41,7 @@ The default values remain server-configurable under `preferences.defaults.*`. Ex
 - Native Java + Bedrock report system and Staff Report Center.
 
 
-## Admin Menu Editor — v1.11.0
+## Admin Menu Editor — v1.11.0.1
 
 Open with:
 

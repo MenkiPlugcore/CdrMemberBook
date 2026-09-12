@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.11.0.1 - Bedrock Interaction Hotfix
+
+- Changed the default Member Book material from `BOOK` to `WRITABLE_BOOK` for reliable Bedrock/Geyser use-item interaction.
+- Existing configs using the old default `BOOK` automatically migrate to `WRITABLE_BOOK`; custom materials are preserved.
+- Existing owned Member Books are refreshed to the configured material through the normal refresh/recovery lifecycle.
+- Added hand fallback detection when Geyser/Paper provides an empty interaction item.
+- Added a configurable 1-tick Bedrock form-open delay to avoid use-item transaction timing conflicts.
+- Java menu routing and existing Member Book safety/recovery behavior remain unchanged.
+- Config migrated to version 28.
+
 ## 1.11.0 - Admin Menu Editor
 
 - Added `/cdrmemberbook menueditor` using the existing `cdrmemberbook.admin.memberbook` permission.
