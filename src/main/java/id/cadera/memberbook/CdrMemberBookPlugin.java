@@ -91,7 +91,8 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(memberBookService, this);
         memberBookService.giveToOnlinePlayers();
         memberBookService.startEnforcement();
-        getLogger().info("CdrMemberBook v1.5.3 enabled.");
+        getLogger().info("Member Book mode: " + memberBookService.modeName());
+        getLogger().info("CdrMemberBook v1.6.0 enabled.");
     }
 
     @Override
@@ -187,7 +188,16 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
             setPresetDefaults("shop", "Shop", "textures/items/emerald");
         }
 
-        getConfig().set("config-version", 10);
+        if (configVersion < 11) {
+            if (!getConfig().isSet("member-book.mode")) {
+                getConfig().set("member-book.mode",
+                        getConfig().getBoolean("member-book.permanent-hotbar", false)
+                                ? "LOCKED_HOTBAR" : "MOVABLE");
+            }
+            getConfig().set("member-book.fixed-slot.return-delay-ticks", 40L);
+        }
+
+        getConfig().set("config-version", 11);
         saveConfig();
     }
 

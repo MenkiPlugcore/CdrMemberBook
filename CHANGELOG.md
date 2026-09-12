@@ -6,6 +6,19 @@
 - Plugin identity, Maven artifact, Java main class, dan Java package diganti menjadi CdrMemberBook.
 - Permission prefix lama `moonsignmenu.*` tetap dipertahankan sementara untuk kompatibilitas server yang sudah berjalan.
 
+## 1.6.0 — Book Modes
+
+- Added `member-book.mode` with four modes: `MOVABLE`, `LOCKED_HOTBAR`, `FIXED_SLOT_MOVABLE`, and `NORMAL`.
+- `MOVABLE` preserves the current production behavior: free movement inside the player's own inventory while Safety & Recovery and external-storage protection remain active.
+- `LOCKED_HOTBAR` keeps one Member Book in `hotbar-slot`, blocks direct movement of the book, and continuously restores the configured slot.
+- `FIXED_SLOT_MOVABLE` allows temporary internal movement but returns the Member Book to `hotbar-slot` after `fixed-slot.return-delay-ticks` (40 ticks by default).
+- `NORMAL` behaves like a regular item: no periodic recovery, no duplicate cleanup, no anti-drop, no external-storage protection, no hopper/dispenser protection, and no death-drop removal. Right-click still opens the menu.
+- `NORMAL` can still honor `give-on-join`; because the plugin intentionally does not search arbitrary containers in this mode, servers that want a fully manual normal item should set `give-on-join: false` and use the admin give command.
+- Legacy `permanent-hotbar: true` automatically migrates to `LOCKED_HOTBAR`; other existing installations migrate to `MOVABLE` so current production behavior is preserved.
+- Added mode name logging on plugin startup and safe fallback to `MOVABLE` for an invalid mode value.
+- Config migration v10 -> v11 adds mode and fixed-slot defaults.
+- Version bumped to `1.6.0`.
+
 ## 1.5.3 — Home Manager Advanced
 
 - Added advanced per-preset metadata under `integrations.essentials-home.preset-details`.

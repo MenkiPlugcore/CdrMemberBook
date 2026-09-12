@@ -49,6 +49,7 @@ public final class MemberBookService implements Listener {
     private final NamespacedKey bookKey;
     private final Set<UUID> recoverySuppressed = new HashSet<>();
     private final Set<UUID> menuOpenCooldown = new HashSet<>();
+    private final Set<UUID> fixedSlotReturnPending = new HashSet<>();
     private BukkitTask enforcementTask;
     private BukkitTask dynamicRefreshTask;
 
@@ -61,10 +62,18 @@ public final class MemberBookService implements Listener {
         stopEnforcement();
         if (!isEnabled()) return;
 
-        if (isPermanentHotbar() || recoveryEnabled()) {
-            long configuredPeriod = isPermanentHotbar()
-                    ? plugin.getConfig().getLong("member-book.enforce-interval-ticks", 20L)
-                    : plugin.getConfig().getLong("member-book.recovery.interval-ticks", 100L);
+        BookMode mode = bookMode();
+        boolean needsEnforcement = mode == BookMode.LOCKED_HOTBAR
+                || mode == BookMode.FIXED_SLOT_MOVABLE
+                || (mode == BookMode.MOVABLE && recoveryEnabled());
+
+        if (needsEnforcement) {
+            long configuredPeriod = switch (mode) {
+                case LOCKED_HOTBAR -> plugin.getConfig().getLong("member-book.enforce-interval-ticks", 20L);
+                case FIXED_SLOT_MOVABLE -> plugin.getConfig().getLong(
+                        "member-book.fixed-slot.return-delay-ticks", 40L);
+                default -> plugin.getConfig().getLong("member-book.recovery.interval-ticks", 100L);
+            };
             long period = Math.max(20L, configuredPeriod);
 
             enforcementTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
@@ -141,7 +150,8 @@ public final class MemberBookService implements Listener {
         if (!isEligibleForBook(player)) return false;
         recoverySuppressed.remove(player.getUniqueId());
         if (refreshExistingEnabled()) refreshVisibleBookAppearance(player);
-        return reconcileMovableBook(player, true, true, true) && finishLockedMode(player);
+        boolean given = reconcileMovableBook(player, true, true, true);
+        return given && finishBookMode(player);
     }
 
     public boolean forceRepair(Player player) {
@@ -150,7 +160,7 @@ public final class MemberBookService implements Listener {
         if (refreshExistingEnabled()) refreshVisibleBookAppearance(player);
         boolean repaired = reconcileMovableBook(player, true, true, true);
         if (!repaired) return false;
-        return finishLockedMode(player);
+        return finishBookMode(player);
     }
 
     public int forceRemove(Player player) {
@@ -158,8 +168,11 @@ public final class MemberBookService implements Listener {
         return removeAllVisibleBooks(player, true);
     }
 
-    private boolean finishLockedMode(Player player) {
-        if (!isPermanentHotbar()) return hasOwnedBook(player);
+    private boolean finishBookMode(Player player) {
+        BookMode mode = bookMode();
+        if (mode != BookMode.LOCKED_HOTBAR && mode != BookMode.FIXED_SLOT_MOVABLE) {
+            return hasOwnedBook(player);
+        }
         if (isMemberBook(player.getItemOnCursor())) return true;
         ensureLockedHotbarBook(player);
         return hasOwnedBook(player);
@@ -175,7 +188,19 @@ public final class MemberBookService implements Listener {
 
         if (recoverySuppressed.contains(player.getUniqueId())) return;
 
-        if (isPermanentHotbar()) {
+        BookMode mode = bookMode();
+        if (mode == BookMode.NORMAL) {
+            // NORMAL behaves like a regular item: no periodic recovery, slot enforcement,
+            // duplicate cleanup, drop protection or external-storage protection.
+            if (notifyFull && giveOnJoinEnabled() && !hasOwnedBook(player)) {
+                if (!placeBookInPlayer(player, createBook(player))) {
+                    plugin.message(player, "member-book-inventory-full");
+                }
+            }
+            return;
+        }
+
+        if (mode == BookMode.LOCKED_HOTBAR || mode == BookMode.FIXED_SLOT_MOVABLE) {
             reconcileMovableBook(player, false, false, false);
             if (isMemberBook(player.getItemOnCursor())) return;
             ensureLockedHotbarBook(player);
@@ -516,31 +541,58 @@ public final class MemberBookService implements Listener {
     }
 
     private boolean shouldMaintain() {
-        return isPermanentHotbar() || plugin.getConfig().getBoolean("member-book.give-on-join", true);
+        return bookMode() != BookMode.NORMAL && giveOnJoinEnabled();
+    }
+
+    private boolean giveOnJoinEnabled() {
+        return plugin.getConfig().getBoolean("member-book.give-on-join", true);
+    }
+
+    private BookMode bookMode() {
+        String configured = plugin.getConfig().getString("member-book.mode", "");
+        if (configured == null || configured.isBlank()) {
+            return plugin.getConfig().getBoolean("member-book.permanent-hotbar", false)
+                    ? BookMode.LOCKED_HOTBAR
+                    : BookMode.MOVABLE;
+        }
+        try {
+            return BookMode.valueOf(configured.trim().toUpperCase());
+        } catch (IllegalArgumentException ignored) {
+            return BookMode.MOVABLE;
+        }
+    }
+
+    public String modeName() {
+        return bookMode().name();
     }
 
     private boolean isPermanentHotbar() {
-        return plugin.getConfig().getBoolean("member-book.permanent-hotbar", false);
+        return bookMode() == BookMode.LOCKED_HOTBAR;
     }
 
     private boolean preventExternalStorage() {
-        return plugin.getConfig().getBoolean("member-book.prevent-external-storage", true);
+        return bookMode() != BookMode.NORMAL
+                && plugin.getConfig().getBoolean("member-book.prevent-external-storage", true);
     }
 
     private boolean recoveryEnabled() {
-        return plugin.getConfig().getBoolean("member-book.recovery.enabled", true);
+        return bookMode() != BookMode.NORMAL
+                && plugin.getConfig().getBoolean("member-book.recovery.enabled", true);
     }
 
     private boolean recoverFromOpenContainer() {
-        return plugin.getConfig().getBoolean("member-book.recovery.recover-from-open-container", true);
+        return bookMode() != BookMode.NORMAL
+                && plugin.getConfig().getBoolean("member-book.recovery.recover-from-open-container", true);
     }
 
     private boolean removeDuplicatesEnabled() {
-        return plugin.getConfig().getBoolean("member-book.recovery.remove-duplicates", true);
+        return bookMode() != BookMode.NORMAL
+                && plugin.getConfig().getBoolean("member-book.recovery.remove-duplicates", true);
     }
 
     private boolean recoverOnWorldChange() {
-        return plugin.getConfig().getBoolean("member-book.recovery.recover-on-world-change", true);
+        return bookMode() != BookMode.NORMAL
+                && plugin.getConfig().getBoolean("member-book.recovery.recover-on-world-change", true);
     }
 
     private int reservedSlot() {
@@ -563,6 +615,18 @@ public final class MemberBookService implements Listener {
     }
 
     private void scheduleRepair(Player player) {
+        if (bookMode() == BookMode.NORMAL) return;
+        if (bookMode() == BookMode.FIXED_SLOT_MOVABLE) {
+            UUID uuid = player.getUniqueId();
+            if (!fixedSlotReturnPending.add(uuid)) return;
+            long delay = Math.max(1L, plugin.getConfig().getLong(
+                    "member-book.fixed-slot.return-delay-ticks", 40L));
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                fixedSlotReturnPending.remove(uuid);
+                if (player.isOnline()) syncBookState(player, false);
+            }, delay);
+            return;
+        }
         Bukkit.getScheduler().runTask(plugin, () -> {
             if (player.isOnline()) syncBookState(player, false);
         });
@@ -589,7 +653,7 @@ public final class MemberBookService implements Listener {
         if (!isEnabled()) return;
         Player player = event.getPlayer();
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (player.isOnline()) syncBookState(player, true);
+            if (player.isOnline()) syncBookState(player, bookMode() != BookMode.NORMAL);
         }, 1L);
     }
 
@@ -659,6 +723,17 @@ public final class MemberBookService implements Listener {
         boolean clickedForeignInventory = event.getClickedInventory() != null && !clickedOwnInventory;
         boolean touchedBook = cursorBook || currentBook;
 
+        if (bookMode() == BookMode.LOCKED_HOTBAR) {
+            int lockedHotbarButton = event.getHotbarButton();
+            boolean reservedHotbarSwap = lockedHotbarButton == reservedSlot()
+                    && isMemberBook(player.getInventory().getItem(reservedSlot()));
+            if (touchedBook || reservedHotbarSwap) {
+                event.setCancelled(true);
+                scheduleRepair(player);
+                return;
+            }
+        }
+
         if (cursorBook && clickedForeignInventory) {
             event.setCancelled(true);
             denyExternalStorage(player);
@@ -704,8 +779,14 @@ public final class MemberBookService implements Listener {
     @EventHandler
     public void onInventoryDrag(InventoryDragEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) return;
-        if (!isEligibleForBook(player) || !preventExternalStorage()) return;
+        if (!isEligibleForBook(player)) return;
         if (!isMemberBook(event.getOldCursor())) return;
+        if (bookMode() == BookMode.LOCKED_HOTBAR) {
+            event.setCancelled(true);
+            scheduleRepair(player);
+            return;
+        }
+        if (!preventExternalStorage()) return;
 
         int topSize = event.getView().getTopInventory().getSize();
         for (int rawSlot : event.getRawSlots()) {
@@ -722,17 +803,17 @@ public final class MemberBookService implements Listener {
 
     @EventHandler
     public void onInventoryMove(InventoryMoveItemEvent event) {
-        if (isMemberBook(event.getItem())) event.setCancelled(true);
+        if (bookMode() != BookMode.NORMAL && isMemberBook(event.getItem())) event.setCancelled(true);
     }
 
     @EventHandler
     public void onInventoryPickup(InventoryPickupItemEvent event) {
-        if (isMemberBook(event.getItem().getItemStack())) event.setCancelled(true);
+        if (bookMode() != BookMode.NORMAL && isMemberBook(event.getItem().getItemStack())) event.setCancelled(true);
     }
 
     @EventHandler
     public void onDispense(BlockDispenseEvent event) {
-        if (isMemberBook(event.getItem())) event.setCancelled(true);
+        if (bookMode() != BookMode.NORMAL && isMemberBook(event.getItem())) event.setCancelled(true);
     }
 
     @EventHandler
@@ -740,6 +821,7 @@ public final class MemberBookService implements Listener {
         if (!(event.getEntity() instanceof Player player)) return;
         Item itemEntity = event.getItem();
         if (!isMemberBook(itemEntity.getItemStack())) return;
+        if (bookMode() == BookMode.NORMAL) return;
 
         event.setCancelled(true);
         ItemStack recovered = itemEntity.getItemStack().clone();
@@ -753,6 +835,7 @@ public final class MemberBookService implements Listener {
     @EventHandler
     public void onDrop(PlayerDropItemEvent event) {
         if (!isEligibleForBook(event.getPlayer())) return;
+        if (bookMode() == BookMode.NORMAL) return;
         if (!plugin.getConfig().getBoolean("member-book.prevent-drop", true)) return;
         if (!isMemberBook(event.getItemDrop().getItemStack())) return;
         event.setCancelled(true);
@@ -762,7 +845,7 @@ public final class MemberBookService implements Listener {
 
     @EventHandler
     public void onDeath(PlayerDeathEvent event) {
-        if (!isEnabled()) return;
+        if (!isEnabled() || bookMode() == BookMode.NORMAL) return;
         event.getDrops().removeIf(this::isMemberBook);
     }
 
@@ -770,6 +853,8 @@ public final class MemberBookService implements Listener {
     public void onQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
         menuOpenCooldown.remove(player.getUniqueId());
+        fixedSlotReturnPending.remove(player.getUniqueId());
+        if (bookMode() == BookMode.NORMAL) return;
         if (!isMemberBook(player.getItemOnCursor())) return;
 
         if (hasInventoryBook(player)) {
@@ -786,5 +871,12 @@ public final class MemberBookService implements Listener {
             if (isMemberBook(item)) return true;
         }
         return false;
+    }
+
+    private enum BookMode {
+        MOVABLE,
+        LOCKED_HOTBAR,
+        FIXED_SLOT_MOVABLE,
+        NORMAL
     }
 }

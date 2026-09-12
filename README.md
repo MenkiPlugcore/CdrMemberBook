@@ -1,4 +1,4 @@
-# CdrMemberBook v1.5.3
+# CdrMemberBook v1.6.0
 
 Standalone Paper plugin by **CADERA** untuk member menu Minecraft Java + Bedrock. Project ini dipisahkan dari monorepo `MenkiPlugcore/plugin` agar release, maintenance, issue, dan update berikutnya dapat dikelola langsung dari repository ini.
 
@@ -27,6 +27,30 @@ Standalone Paper plugin by **CADERA** untuk member menu Minecraft Java + Bedrock
 - Shift-click, drag, hotbar-number swap, offhand swap, hopper/container transfer, hopper pickup, dan dispenser ikut diproteksi.
 - Member Book tetap tidak dapat dibuang jika `prevent-drop: true`.
 - Safety recovery otomatis memulihkan buku yang hilang dan membersihkan duplikat.
+
+## Book Modes v1.6.0
+
+Behavior Member Book sekarang dapat dipilih melalui `member-book.mode` tanpa compile ulang:
+
+```yaml
+member-book:
+  mode: MOVABLE
+  hotbar-slot: 8
+  enforce-interval-ticks: 20
+  fixed-slot:
+    return-delay-ticks: 40
+```
+
+| Mode | Behavior |
+|---|---|
+| `MOVABLE` | Default production. Buku bebas dipindah di inventory sendiri; anti-drop, external-storage protection, dan Safety & Recovery tetap aktif. |
+| `LOCKED_HOTBAR` | Buku dijaga di `hotbar-slot` dan perpindahan langsung diblok. Cocok untuk server yang ingin tombol menu permanen. |
+| `FIXED_SLOT_MOVABLE` | Player boleh memindahkan buku, tetapi setelah delay buku otomatis dikembalikan ke `hotbar-slot`. |
+| `NORMAL` | Member Book menjadi item biasa. Bisa dibuang/disimpan/dipindah normal; tidak ada recovery atau slot enforcement. Right-click tetap membuka menu. |
+
+`NORMAL` tetap dapat memakai `give-on-join: true`, tetapi plugin sengaja tidak melacak buku di chest/container pada mode ini. Untuk item normal yang sepenuhnya manual gunakan `give-on-join: false`, lalu berikan melalui `/cdrmemberbook give <player>`.
+
+Config lama tetap aman: `permanent-hotbar: true` dimigrasikan menjadi `LOCKED_HOTBAR`, sedangkan instalasi lainnya menjadi `MOVABLE`.
 
 ## Dynamic Member Book
 
@@ -209,7 +233,7 @@ mvn clean package
 Output:
 
 ```text
-target/CdrMemberBook-1.5.3.jar
+target/CdrMemberBook-1.6.0.jar
 ```
 
 ## Migration
