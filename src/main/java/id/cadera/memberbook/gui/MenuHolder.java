@@ -3,6 +3,7 @@ package id.cadera.memberbook.gui;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.event.inventory.InventoryType;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.UUID;
@@ -15,7 +16,10 @@ public final class MenuHolder implements InventoryHolder {
         REPORT_CENTER,
         REPORT_LIST,
         REPORT_DETAIL,
-        REPORT_CONFIRM
+        REPORT_CONFIRM,
+        REPORT_SUBMIT_PLAYER,
+        REPORT_SUBMIT_REASON,
+        REPORT_SUBMIT_CONFIRM
     }
 
     private final Type type;
@@ -28,6 +32,17 @@ public final class MenuHolder implements InventoryHolder {
 
     public MenuHolder(Type type, UUID targetId, String menuId, int page, int size, String title) {
         this(type, targetId, menuId, page, "", 0, size, title);
+    }
+
+    public MenuHolder(Type type, UUID targetId, String menuId, int page,
+                      InventoryType inventoryType, String title) {
+        this.type = type;
+        this.targetId = targetId;
+        this.menuId = menuId == null ? "main" : menuId;
+        this.page = Math.max(0, page);
+        this.context = "";
+        this.value = 0;
+        this.inventory = Bukkit.createInventory(this, inventoryType, title);
     }
 
     public MenuHolder(Type type, UUID targetId, String menuId, int page,

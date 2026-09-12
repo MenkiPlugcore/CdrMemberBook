@@ -1,5 +1,5 @@
-# CdrMemberBook v1.9.5
-config-version: 22
+# CdrMemberBook v1.9.6
+config-version: 23
 prefix: '&8[&dCdrMemberBook&8] &r'
 
 teleport:
@@ -231,7 +231,15 @@ integrations:
       max-history: 50
       max-notes: 20
       max-note-length: 240
-    # Native Java + Bedrock staff Report Center. Java staff UI akan ditambahkan terpisah.
+    # Native Java player report submit. Tidak membutuhkan plugin /report eksternal.
+    java-submit:
+      enabled: true
+      # Input alasan memakai UI Anvil native Java agar tidak menyadap chat player.
+      reason-title: '&8Lapor • Alasan'
+      reason-placeholder: 'Ketik alasan laporan...'
+      reason-material: PAPER
+
+    # Native Java + Bedrock staff Report Center.
     center:
       enabled: true
       page-size: 8
@@ -416,7 +424,7 @@ menu:
         enabled: true
         name: Lapor
         type: report
-        # Java fallback jika ada plugin eksternal dengan /report. Bedrock memakai report native CdrMemberBook.
+        # Java dan Bedrock memakai native report CdrMemberBook. `command` hanya fallback jika native report dimatikan.
         command: report
         executor: player
         order: 110
@@ -540,6 +548,7 @@ messages:
   invalid-button-type: '&cTipe tombol &f%type% &ctidak dikenali.'
   feature-unavailable: '&eFitur ini sedang tidak tersedia karena plugin/command yang dibutuhkan tidak aktif.'
   report-reason-too-short: '&eAlasan laporan minimal &f%min% &ekarakter.'
+  report-reason-too-long: '&eAlasan laporan maksimal &f%max% &ekarakter.'
   report-sent: '&aLaporan &f#%id% &auntuk &f%player% &aberhasil dikirim ke staff.'
   report-cooldown: '&eTunggu &f%seconds%s &esebelum membuat laporan lagi.'
   report-duplicate: '&eKamu baru saja melaporkan player ini. Report sebelumnya: &f#%id%&e. Coba lagi dalam &f%seconds%s&e.'

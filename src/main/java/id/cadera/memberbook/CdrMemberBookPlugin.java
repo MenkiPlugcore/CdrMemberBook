@@ -104,7 +104,7 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
         memberBookService.giveToOnlinePlayers();
         memberBookService.startEnforcement();
         getLogger().info("Member Book mode: " + memberBookService.modeName());
-        getLogger().info("CdrMemberBook v1.9.5 enabled.");
+        getLogger().info("CdrMemberBook v1.9.6 enabled.");
     }
 
     @Override
@@ -289,7 +289,14 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
             getConfig().set("integrations.report.center.detail-audit-limit", 5);
         }
 
-        getConfig().set("config-version", 22);
+        if (configVersion < 23) {
+            getConfig().set("integrations.report.java-submit.enabled", true);
+            getConfig().set("integrations.report.java-submit.reason-title", "&8Lapor • Alasan");
+            getConfig().set("integrations.report.java-submit.reason-placeholder", "Ketik alasan laporan...");
+            getConfig().set("integrations.report.java-submit.reason-material", "PAPER");
+        }
+
+        getConfig().set("config-version", 23);
         saveConfig();
     }
 

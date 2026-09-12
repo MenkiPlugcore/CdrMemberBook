@@ -1,4 +1,4 @@
-# CdrMemberBook v1.9.5
+# CdrMemberBook v1.9.6
 
 Standalone Paper plugin by **CADERA** for a configurable Minecraft Java + Bedrock member menu.
 
@@ -211,9 +211,25 @@ mvn clean package
 Output:
 
 ```text
-target/CdrMemberBook-1.9.5.jar
+target/CdrMemberBook-1.9.6.jar
 ```
 
 ## License
 
 CdrMemberBook is distributed under the repository's **MENKIESTES SOFTWARE LICENSE v1.0**. MENKIESTES is created by **CADERA**. Third-party dependency licenses remain subject to their respective terms.
+
+## Java Native Report Submit v1.9.6
+
+Player Java sekarang memakai flow report bawaan yang sama dengan Bedrock dan tidak membutuhkan plugin `/report` eksternal. Klik tombol **Lapor** → pilih player online → ketik alasan pada UI Anvil native → cek halaman konfirmasi → kirim. Submit tetap memakai `ReportService`, sehingga cooldown, anti-duplicate v1.9.5, persistence `reports.yml`, staff notification, console hook, dan audit tetap konsisten lintas Java/Bedrock.
+
+```yaml
+integrations:
+  report:
+    java-submit:
+      enabled: true
+      reason-title: '&8Lapor • Alasan'
+      reason-placeholder: 'Ketik alasan laporan...'
+      reason-material: PAPER
+```
+
+Menutup Anvil dengan ESC membatalkan input tanpa menyimpan report. Target yang logout di tengah flow akan ditolak aman dan player dikembalikan ke picker.

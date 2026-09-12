@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.9.6 - Java Native Report Submit
+
+- Added fully native Java report submission without requiring an external `/report` plugin.
+- Added Java inventory target picker with pagination and self-target exclusion.
+- Added native Anvil reason input, configurable title/placeholder/material, min/max validation and no chat interception.
+- Added Java confirmation GUI with target head, wrapped reason preview, Edit, Cancel and Send actions.
+- Java and Bedrock submissions now share the same `ReportService`, cooldown, anti-duplicate protection, persistence, staff notifications and audit pipeline.
+- Added config migration v23 and Java-native report availability detection.
+
 ## 1.9.5 - Report QoL & Audit
 
 - Added anti-duplicate reporter-to-target window with existing report ID feedback.

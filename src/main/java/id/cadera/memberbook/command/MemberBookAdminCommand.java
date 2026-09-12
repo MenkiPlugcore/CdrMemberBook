@@ -230,7 +230,7 @@ public final class MemberBookAdminCommand implements CommandExecutor, TabComplet
     }
 
     private void sendHealth(CommandSender sender) {
-        sender.sendMessage(Colors.legacy("&dCdrMemberBook Health &8- &fv1.9.5"));
+        sender.sendMessage(Colors.legacy("&dCdrMemberBook Health &8- &fv1.9.6"));
         sender.sendMessage(Colors.legacy("&7Config version: &f" + plugin.getConfig().getInt("config-version", -1)
                 + " &8| &7Actions: &f" + plugin.getConfig().getBoolean("menu.actions.enabled", true)));
         sender.sendMessage(Colors.legacy("&7Floodgate: &f" + Bukkit.getPluginManager().isPluginEnabled("floodgate")
@@ -250,7 +250,7 @@ public final class MemberBookAdminCommand implements CommandExecutor, TabComplet
     }
 
     private void sendUsage(CommandSender sender, String label) {
-        sender.sendMessage(Colors.legacy("&dCdrMemberBook &fv1.9.5 &8- &7Admin Tools"));
+        sender.sendMessage(Colors.legacy("&dCdrMemberBook &fv1.9.6 &8- &7Admin Tools"));
         sender.sendMessage(Colors.legacy("&f/" + label + " <give|remove|fix|refresh|status|tutorialreset|tutorialshow> <player>"));
         sender.sendMessage(Colors.legacy("&f/" + label + " menudebug <player> [menu] &8- &7cek alasan tombol tampil/hilang"));
         sender.sendMessage(Colors.legacy("&f/" + label + " reports [page] [open|resolved|all] &8- &7list report"));

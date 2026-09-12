@@ -102,7 +102,14 @@ public final class MenuConfigService {
             case "homes" -> plugin.homes()!=null && plugin.homes().available() ? new Availability(true,"ok","EssentialsX") : new Availability(false,"missing-integration","EssentialsX Home");
             case "pay" -> availableCommand(plugin.getConfig().getString("integrations.pay.command","pay %target% %amount%"));
             case "trade" -> !plugin.getServer().getPluginManager().isPluginEnabled("AxTrade") ? new Availability(false,"missing-plugin","AxTrade") : availableCommand(plugin.getConfig().getString("integrations.axtrade.send-command","axtrade %target%"));
-            case "report" -> (plugin.reports()!=null && plugin.reports().enabled() && plugin.forms()!=null && plugin.forms().isBedrock(player)) ? new Availability(true,"ok","native-report") : availableCommand(button.command());
+            case "report" -> {
+                boolean nativeReport = plugin.reports()!=null && plugin.reports().enabled();
+                boolean bedrock = plugin.forms()!=null && plugin.forms().isBedrock(player);
+                boolean javaSubmit = plugin.getConfig().getBoolean("integrations.report.java-submit.enabled", true);
+                if (nativeReport && (bedrock || javaSubmit))
+                    yield new Availability(true,"ok", bedrock ? "native-report-bedrock" : "native-report-java");
+                yield availableCommand(button.command());
+            }
             case "report-center" -> {
                 if (plugin.reports() == null || !plugin.reports().enabled())
                     yield new Availability(false,"report-disabled","native report disabled");
