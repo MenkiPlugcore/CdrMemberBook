@@ -1,0 +1,40 @@
+name: Upgrade CdrMemberBook v1.5.3
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/upgrade-v1.5.3.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Apply v1.5.3 Home Manager Advanced update
+        run: python3 .github/scripts/upgrade_v153.py
+
+      - name: Build with Maven
+        run: mvn -B clean package
+
+      - name: Commit v1.5.3
+        run: |
+          git config user.name "MenkiPlugcore"
+          git config user.email "cfirmansyah327@gmail.com"
+          git add src pom.xml README.md CHANGELOG.md
+          git commit -m "feat: add Home Manager Advanced v1.5.3"
+          git push
