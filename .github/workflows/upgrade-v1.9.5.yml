@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/scripts/upgrade_v195.py'
       - '.github/scripts/fix_upgrade_v195.py'
+      - '.github/scripts/postfix_v195.py'
       - '.github/workflows/upgrade-v1.9.5.yml'
 
 permissions:
@@ -29,6 +30,8 @@ jobs:
         run: python3 .github/scripts/fix_upgrade_v195.py
       - name: Apply v1.9.5
         run: python3 .github/scripts/upgrade_v195.py
+      - name: Post-patch compile cleanup
+        run: python3 .github/scripts/postfix_v195.py
       - name: Build with Maven
         run: mvn -B clean package
       - name: Commit v1.9.5
