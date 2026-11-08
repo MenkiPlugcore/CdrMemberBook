@@ -20,11 +20,26 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
 public final class BedrockFormService {
     private static final Pattern HOME_NAME = Pattern.compile("[A-Za-z0-9_-]{1,32}");
+
+    // Verified against Mojang's vanilla Bedrock texture catalogs.
+    // Unknown custom resource-pack paths are opt-in so forms do not show
+    // missing-image placeholders.
+    private static final Set<String> VANILLA_ICONS = Set.of(
+            "textures/items/ender_pearl", "textures/items/lead", "textures/items/lever",
+            "textures/items/name_tag", "textures/items/arrow", "textures/items/bed_red",
+            "textures/items/book_written", "textures/items/book_writable", "textures/items/book_normal",
+            "textures/items/redstone_dust", "textures/items/compass_item", "textures/items/emerald",
+            "textures/items/slimeball", "textures/items/wheat", "textures/items/iron_pickaxe",
+            "textures/items/map_filled", "textures/items/map_empty", "textures/items/paper",
+            "textures/items/gold_ingot", "textures/items/iron_sword", "textures/items/nether_star",
+            "textures/items/comparator", "textures/items/clock_item", "textures/blocks/ender_chest_front"
+    );
 
     private final CdrMemberBookPlugin plugin;
 
@@ -173,10 +188,10 @@ public final class BedrockFormService {
         SimpleForm.Builder builder = SimpleForm.builder()
                 .title("Player Settings")
                 .content("Preference tersimpan per-player.\nDefault menu: " + p.defaultMenu(player) + "\nMode: " + p.menuMode(player));
-        addButton(builder, "Suara Plugin: " + onOff(p.soundsEnabled(player)), "settings", "textures/items/note_block");
+        addButton(builder, "Suara Plugin: " + onOff(p.soundsEnabled(player)), "settings", "textures/items/redstone_dust");
         addButton(builder, "Tutorial Otomatis: " + onOff(p.tutorialEnabled(player)), "settings", "textures/items/book_written");
         addButton(builder, "TP Status Notification: " + onOff(p.tpStatusNotificationsEnabled(player)), "settings", "textures/items/ender_pearl");
-        addButton(builder, "Staff Report Notification: " + onOff(p.reportStaffNotificationsEnabled(player)), "settings", "textures/items/bell");
+        addButton(builder, "Staff Report Notification: " + onOff(p.reportStaffNotificationsEnabled(player)), "settings", "textures/items/book_written");
         addButton(builder, "Menu Mode: " + p.menuMode(player), "settings", "textures/items/comparator");
         addButton(builder, "Default Menu: " + p.defaultMenu(player), "settings", "textures/items/compass_item");
         addButton(builder, "Reset ke Default", "delete", "textures/items/redstone_dust");
@@ -247,7 +262,7 @@ public final class BedrockFormService {
                 "home", "textures/items/ender_pearl");
         addButton(builder, "Set Home", "home-add", "textures/items/bed_red");
         addButton(builder, names.isEmpty() ? "Hapus Home (BELUM ADA)" : "Hapus Home (" + names.size() + ")",
-                "delete", "textures/items/barrier");
+                "delete", "textures/items/redstone_dust");
         if (showRefresh) addButton(builder, "Refresh Home", "refresh", "textures/items/compass_item");
         addButton(builder, "Kembali", "back", "textures/items/arrow");
 
@@ -449,7 +464,7 @@ public final class BedrockFormService {
         for (String name : names) {
             HomePreset preset = presetForOwnedHome(name);
             String label = preset == null ? name : preset.displayName();
-            String icon = preset == null ? "textures/items/barrier" : preset.icon();
+            String icon = preset == null ? "textures/items/redstone_dust" : preset.icon();
             addConfiguredButton(builder, plugin.formatMenuText(label, player), icon);
         }
         addButton(builder, "Kembali", "back", "textures/items/arrow");
@@ -961,7 +976,7 @@ public final class BedrockFormService {
             addButton(builder, "Reopen Report", "refresh", "textures/items/compass_item");
         }
         addButton(builder, "Tambah Catatan Staff", "report", "textures/items/paper");
-        if (allowDelete) addButton(builder, "Hapus Report", "delete", "textures/items/barrier");
+        if (allowDelete) addButton(builder, "Hapus Report", "delete", "textures/items/redstone_dust");
         addButton(builder, "Kembali", "back", "textures/items/arrow");
 
         int noteIndex = 1;
@@ -1065,7 +1080,7 @@ public final class BedrockFormService {
                 .content("Kelola trade tanpa perlu mengetik nama player.");
         addButton(builder, "Kirim Permintaan Trade", "trade-send", "textures/items/emerald");
         addButton(builder, "Terima Permintaan", "trade-accept", "textures/items/slimeball");
-        addButton(builder, "Tolak Permintaan", "trade-deny", "textures/items/barrier");
+        addButton(builder, "Tolak Permintaan", "trade-deny", "textures/items/redstone_dust");
         addButton(builder, "Aktif/Nonaktif Permintaan", "toggle", "textures/items/lever");
         addButton(builder, "Kembali", "back", "textures/items/arrow");
 
@@ -1274,22 +1289,62 @@ public final class BedrockFormService {
     }
 
     private void addConfiguredButton(SimpleForm.Builder builder, String text, String path) {
-        if (plugin.getConfig().getBoolean("bedrock-icons.enabled", true) && path != null && !path.isBlank()) {
-            builder.button(text, FormImage.Type.PATH, path);
-            return;
-        }
-        builder.button(text);
+        addImageButton(builder, text, path, "textures/items/paper");
     }
 
     private void addButton(SimpleForm.Builder builder, String text, String iconKey, String fallbackPath) {
-        if (plugin.getConfig().getBoolean("bedrock-icons.enabled", true)) {
-            String path = plugin.getConfig().getString("bedrock-icons." + iconKey, fallbackPath);
-            if (path != null && !path.isBlank()) {
-                builder.button(text, FormImage.Type.PATH, path);
+        String path = plugin.getConfig().getString("bedrock-icons." + iconKey, fallbackPath);
+        addImageButton(builder, text, path, fallbackPath);
+    }
+
+    private void addImageButton(SimpleForm.Builder builder, String text, String iconPath, String fallbackPath) {
+        if (!plugin.getConfig().getBoolean("bedrock-icons.enabled", true)) {
+            builder.button(text);
+            return;
+        }
+
+        String fallback = safeVanillaPath(fallbackPath);
+        if (fallback == null) fallback = "textures/items/paper";
+
+        String path = iconPath == null ? "" : iconPath.trim();
+        // Migrate older icon keys which have no corresponding vanilla texture.
+        path = switch (path) {
+            case "textures/items/barrier", "textures/items/note_block" -> "textures/items/redstone_dust";
+            case "textures/items/bell" -> "textures/items/book_written";
+            default -> path;
+        };
+        if (path.startsWith("https://")) {
+            if (plugin.getConfig().getBoolean("bedrock-icons.allow-remote-urls", false)) {
+                builder.button(text, FormImage.Type.URL, path);
                 return;
             }
+            path = fallback;
         }
-        builder.button(text);
+
+        // Bedrock paths must exist in the client's resource pack.
+        // Unknown paths are replaced with safe vanilla icons by default.
+        if (!VANILLA_ICONS.contains(path)
+                && !plugin.getConfig().getBoolean("bedrock-icons.allow-custom-paths", false)) {
+            path = fallback;
+        }
+        if (path.startsWith("textures/") && !path.contains("..") && !path.contains("\\")
+                && (VANILLA_ICONS.contains(path)
+                    || plugin.getConfig().getBoolean("bedrock-icons.allow-custom-paths", false))) {
+            builder.button(text, FormImage.Type.PATH, path);
+        } else {
+            builder.button(text);
+        }
+    }
+
+    private String safeVanillaPath(String path) {
+        if (path == null) return null;
+        String normalized = path.trim();
+        if (normalized.equals("textures/items/barrier") || normalized.equals("textures/items/note_block")) {
+            normalized = "textures/items/redstone_dust";
+        } else if (normalized.equals("textures/items/bell")) {
+            normalized = "textures/items/book_written";
+        }
+        return VANILLA_ICONS.contains(normalized) ? normalized : null;
     }
 
     private void send(Player player, org.geysermc.cumulus.form.Form form) {
