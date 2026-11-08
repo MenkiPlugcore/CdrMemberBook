@@ -1,5 +1,5 @@
-# CdrMemberBook v1.11.0.1
-config-version: 28
+# CdrMemberBook v1.12.0 - ARUNIKA Simple Menu
+config-version: 29
 prefix: '&8[&dCdrMemberBook&8] &r'
 
 teleport:
@@ -15,6 +15,11 @@ teleport:
 # Icons for built-in Bedrock pages.
 bedrock-icons:
   enabled: true
+  # Default false: unknown/custom texture paths won't show a broken image on Bedrock.
+  # Turn on ONLY if your Bedrock resource pack contains those custom paths.
+  allow-custom-paths: false
+  # Remote images can be slow or blocked by the client's network.
+  allow-remote-urls: false
   tpa: textures/items/ender_pearl
   tpahere: textures/items/lead
   toggle: textures/items/lever
@@ -23,11 +28,11 @@ bedrock-icons:
   home: textures/items/bed_red
   tutorial: textures/items/book_written
   home-add: textures/items/bed_red
-  delete: textures/items/barrier
+  delete: textures/items/redstone_dust
   refresh: textures/items/compass_item
   trade-send: textures/items/emerald
   trade-accept: textures/items/slimeball
-  trade-deny: textures/items/barrier
+  trade-deny: textures/items/redstone_dust
 
 # Member Book automatically opens the member menu on right click.
 # Default v1.6.0: buku bebas dipindahkan di inventory player sendiri,
@@ -87,10 +92,10 @@ member-book:
 
   # WRITABLE_BOOK reliably produces a Bedrock/Geyser use-item interaction.
   material: WRITABLE_BOOK
-  name: '&d&lCdrMemberBook'
+  name: '&d&lARUNIKA &fMember Book'
   lore:
-  - '&7Klik kanan untuk membuka Menu Member.'
-  - '&8Member Book dari CdrMemberBook.'
+  - '&7Klik kanan untuk membuka menu ARUNIKA.'
+  - '&8Java dan Bedrock • tempat pulang santai.'
 
   # Book Customization v1.4.1
   customization:
@@ -351,97 +356,93 @@ menu:
     max-placeholder-conditions: 16
     max-value-length: 512
 
+  # Simple ARUNIKA layout: direct commands open the other plugin's own GUI.
+  # The buttons below are the new-install defaults. Existing v28 menus are
+  # migrated without deleting existing buttons or custom command settings.
   main:
-    title: '&d&lCdrMemberBook &fMenu'
-    content: '&7Pilih fitur yang ingin kamu buka.'
+    title: '&d&lARUNIKA &f• Member Menu'
+    content: '&7Pilih aktivitas. Menu lain ada di Fitur Lainnya.'
     buttons:
       teleport:
         enabled: true
-        name: '&bMinta TP'
+        name: '&bTeleport Player'
         type: teleport
         order: 10
         icon: textures/items/ender_pearl
         java-material: ENDER_PEARL
         permission: ''
-        lore:
-        - '&7Minta teleport ke player lain.'
+        lore: ['&7Pilih player, lalu minta TP.']
+
+      sethome:
+        enabled: true
+        name: '&aHome'
+        type: homes
+        command: homes
+        executor: player
+        order: 20
+        icon: textures/items/bed_red
+        java-material: RED_BED
+        permission: ''
+        lore: ['&7Kelola home. Bedrock memakai form native.']
 
       warp:
         enabled: true
-        name: Warp
+        name: '&eWarp'
         type: command
         command: warp
         executor: player
-        order: 20
+        order: 30
         icon: textures/items/compass_item
         java-material: COMPASS
         permission: ''
 
       pwarp:
         enabled: true
-        name: Player Warp
+        name: '&ePlayer Warp'
         type: command
         command: pwarp
         executor: player
-        order: 30
+        order: 40
         icon: textures/items/map_filled
         java-material: FILLED_MAP
         permission: ''
 
-      sethome:
+      shop:
         enabled: true
-        name: Home
-        type: homes
-        # Fallback untuk Java player.
-        command: homes
-        executor: player
-        order: 40
-        icon: textures/items/bed_red
-        java-material: RED_BED
-        permission: ''
-        lore:
-        - '&7Set, lihat, teleport, dan hapus home.'
-        - '&7Bedrock: full klik tanpa ketik command.'
-
-      land:
-        enabled: true
-        name: Tanah
+        name: '&6Shop &7(+ Player Shop)'
         type: command
-        command: claimslist
+        command: shop
         executor: player
         order: 50
-        icon: textures/items/map_empty
-        java-material: GRASS_BLOCK
+        icon: textures/items/emerald
+        java-material: EMERALD
         permission: ''
 
-      transfer:
+      dungeon:
         enabled: true
-        name: Transfer
-        type: pay
-        # Fallback untuk Java player.
-        command: pay
+        name: '&cDungeon Exchange'
+        type: command
+        command: dg
         executor: player
         order: 60
-        icon: textures/items/paper
-        java-material: PAPER
+        icon: textures/items/nether_star
+        java-material: NETHER_STAR
         permission: ''
-        lore:
-        - '&7Bedrock: pilih player lalu ketik nominal.'
 
-      bank:
+      family:
         enabled: true
-        name: Bank
+        name: '&dFamily'
         type: command
-        command: bank
+        command: family
         executor: player
         order: 70
-        icon: textures/items/gold_ingot
-        java-material: GOLD_INGOT
+        icon: textures/items/name_tag
+        java-material: NAME_TAG
         permission: ''
 
       team:
         enabled: true
-        name: Party
+        name: '&bCircle / Party'
         type: command
         command: party
         executor: player
@@ -450,101 +451,101 @@ menu:
         java-material: IRON_SWORD
         permission: ''
 
-      shop:
+      more:
         enabled: true
-        name: Shop
-        type: command
-        # Sesuaikan jika command pembuka DGShop berbeda.
-        command: shop
-        executor: player
-        order: 90
-        icon: textures/items/nether_star
-        java-material: NETHER_STAR
-        permission: ''
-
-      playershop:
-        enabled: true
-        name: Player Shop
-        type: command
-        command: ah
-        executor: player
-        order: 100
-        icon: textures/items/name_tag
-        java-material: NAME_TAG
-        permission: ''
-
-      report:
-        enabled: true
-        name: Lapor
-        type: report
-        # Java dan Bedrock memakai native report CdrMemberBook. `command` hanya fallback jika native report dimatikan.
-        command: report
-        executor: player
-        order: 110
-        icon: textures/items/book_writable
-        java-material: WRITABLE_BOOK
-        permission: ''
-
-      report-center:
-        enabled: true
-        name: '&cReport Center'
-        type: report-center
-        order: 115
-        icon: textures/items/book_written
-        java-material: KNOWLEDGE_BOOK
-        permission: 'cdrmemberbook.staff.report'
-        conditions:
-          platform: ANY
-        lore:
-        - '&7Kelola laporan OPEN/RESOLVED.'
-        - '&7Native GUI untuk staff Java/Bedrock.'
-
-      barter:
-        enabled: true
-        name: Barter
-        type: trade
-        # Fallback untuk Java player.
-        command: axtrade
-        executor: player
-        order: 120
-        icon: textures/items/lead
-        java-material: LEAD
-        permission: ''
-        lore:
-        - '&7Bedrock: kirim/terima/tolak trade dengan klik.'
-
-      player-menu:
-        enabled: false
-        name: Menu Player
+        name: '&fFitur Lainnya'
         type: submenu
-        submenu: player
-        order: 130
-        icon: textures/items/name_tag
-        java-material: PLAYER_HEAD
+        submenu: more
+        order: 90
+        icon: textures/items/book_written
+        java-material: BOOK
         permission: ''
 
       settings:
         enabled: true
-        name: '&dSettings'
+        name: '&7Pengaturan'
         type: settings
         order: 900
         icon: textures/items/comparator
         java-material: COMPARATOR
         permission: ''
-        lore:
-        - '&7Atur suara, tutorial, notifikasi,'
-        - '&7mode tampilan, dan default menu.'
-
-      close:
-        enabled: true
-        name: Tutup
-        type: close
-        order: 999
-        icon: textures/items/barrier
-        java-material: BARRIER
-        permission: ''
 
   submenus:
+    more:
+      title: '&dARUNIKA &f• Fitur Lainnya'
+      content: '&7Layanan tambahan. Kembali untuk menu utama.'
+      back-menu: main
+      buttons:
+        land:
+          enabled: true
+          name: Klaim Tanah
+          type: command
+          command: claimslist
+          executor: player
+          order: 10
+          icon: textures/items/map_empty
+          java-material: GRASS_BLOCK
+          permission: ''
+        playershop:
+          enabled: true
+          name: Auction House
+          type: command
+          command: ah
+          executor: player
+          order: 20
+          icon: textures/items/name_tag
+          java-material: NAME_TAG
+          permission: ''
+        bank:
+          enabled: true
+          name: Bank
+          type: command
+          command: bank
+          executor: player
+          order: 30
+          icon: textures/items/gold_ingot
+          java-material: GOLD_INGOT
+          permission: ''
+        transfer:
+          enabled: true
+          name: Transfer Uang
+          type: pay
+          command: pay
+          executor: player
+          order: 40
+          icon: textures/items/paper
+          java-material: PAPER
+          permission: ''
+        barter:
+          enabled: true
+          name: Barter Player
+          type: trade
+          command: axtrade
+          executor: player
+          order: 50
+          icon: textures/items/emerald
+          java-material: EMERALD
+          permission: ''
+        report:
+          enabled: true
+          name: Laporkan Player
+          type: report
+          command: report
+          executor: player
+          order: 60
+          icon: textures/items/book_writable
+          java-material: WRITABLE_BOOK
+          permission: ''
+        report-center:
+          enabled: true
+          name: '&cReport Center &7(Staff)'
+          type: report-center
+          order: 70
+          icon: textures/items/book_written
+          java-material: KNOWLEDGE_BOOK
+          permission: 'cdrmemberbook.staff.report'
+          conditions:
+            platform: ANY
     player:
       title: '&dMenu Player'
       content: '&7Fitur pribadi player.'
