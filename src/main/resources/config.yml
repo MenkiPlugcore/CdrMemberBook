@@ -1,5 +1,5 @@
-# CdrMemberBook v1.12.0 - ARUNIKA Simple Menu
-config-version: 29
+# CdrMemberBook v1.12.1 - ARUNIKA Read-only AntiDupe
+config-version: 30
 prefix: '&8[&dCdrMemberBook&8] &r'
 
 teleport:
@@ -76,6 +76,8 @@ member-book:
     hand-fallback: true
     # Kirim Floodgate Form satu tick setelah use-item agar tidak bentrok dengan transaksi Bedrock.
     bedrock-open-delay-ticks: 1
+    # Block any legacy writable Member Book edit/sign packets server-side.
+    block-native-edit: true
 
   # Safety & Recovery v1.4.0
   recovery:
@@ -90,8 +92,9 @@ member-book:
     # Bersihkan copy ganda di inventory/cursor player.
     remove-duplicates: true
 
-  # WRITABLE_BOOK reliably produces a Bedrock/Geyser use-item interaction.
-  material: WRITABLE_BOOK
+  # Signed book: keeps the book interaction, but removes native Write/Sign.
+  # Generation TATTERED prevents crafting copies of this special book.
+  material: WRITTEN_BOOK
   name: '&d&lARUNIKA &fMember Book'
   lore:
   - '&7Klik kanan untuk membuka menu ARUNIKA.'
