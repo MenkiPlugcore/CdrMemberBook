@@ -9,6 +9,8 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.Event;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockDispenseEvent;
@@ -24,6 +26,7 @@ import org.bukkit.event.inventory.InventoryPickupItemEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerEditBookEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -34,6 +37,7 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -403,7 +407,7 @@ public final class MemberBookService implements Listener {
         Material material = materialName == null ? Material.WRITABLE_BOOK : Material.matchMaterial(materialName);
         if (material == null) material = Material.WRITABLE_BOOK;
 
-        ItemStack item = new ItemStack(material);
+        ItemStack item = new ItemStack(material, 1);
         applyConfiguredAppearance(item, player);
         return item;
     }
@@ -411,6 +415,15 @@ public final class MemberBookService implements Listener {
     private void applyConfiguredAppearance(ItemStack item, Player player) {
         ItemMeta meta = item.getItemMeta();
         if (meta == null) return;
+
+        // Signed Member Books cannot be edited or copied via the vanilla
+        // written-book crafting recipe. The PDC marker remains our authority.
+        if (item.getType() == Material.WRITTEN_BOOK && meta instanceof BookMeta written) {
+            written.setTitle("ARUNIKA Member Book");
+            written.setAuthor("ARUNIKA");
+            written.setPages("Klik kanan untuk membuka menu ARUNIKA.");
+            written.setGeneration(BookMeta.Generation.TATTERED);
+        }
 
         String configuredName = plugin.getConfig().getString(
                 "member-book.name", "&d&lCdrMemberBook &fMember Book");
@@ -742,6 +755,10 @@ public final class MemberBookService implements Listener {
         }
         if (!isMemberBook(interacted)) return;
 
+        // Deny both the book's vanilla item use and block interactions while
+        // retaining the event so we can open our own Java/Bedrock menu.
+        event.setUseItemInHand(Event.Result.DENY);
+        event.setUseInteractedBlock(Event.Result.DENY);
         event.setCancelled(true);
         UUID uuid = player.getUniqueId();
         long cooldownTicks = Math.max(0L, plugin.getConfig().getLong("member-book.open-cooldown-ticks", 20L));
@@ -761,6 +778,32 @@ public final class MemberBookService implements Listener {
         } else {
             plugin.openMenu(player);
         }
+    }
+
+    // A writable member book from older builds must never be editable or
+    // signable, even if the client tries to submit its edit packet directly.
+    // Bukkit cancels server-side changes to the item, not necessarily the
+    // client-side native UI. Migrated books use WRITTEN_BOOK to remove Write.
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onEditBook(PlayerEditBookEvent event) {
+        if (!isEnabled()) return;
+        if (!plugin.getConfig().getBoolean("member-book.interaction.block-native-edit", true)) return;
+
+        Player player = event.getPlayer();
+        int slot = event.getSlot();
+        ItemStack target = slot == -1 ? player.getInventory().getItemInOffHand()
+                : slot >= 0 && slot <= 8 ? player.getInventory().getItem(slot) : null;
+        boolean taggedBefore = event.getPreviousBookMeta().getPersistentDataContainer()
+                .has(bookKey, PersistentDataType.BYTE);
+        if (!taggedBefore && !isMemberBook(target)) return;
+
+        event.setCancelled(true);
+        // Resynchronize any client-side ghost book(s) after a denied edit.
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (!player.isOnline()) return;
+            if (isEligibleForBook(player)) syncBookState(player, false);
+            player.updateInventory();
+        });
     }
 
     @EventHandler
