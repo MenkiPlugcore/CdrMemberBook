@@ -1,7 +1,47 @@
-# CdrMemberBook v1.11.0.1
+# CdrMemberBook v1.12.0
 
 Standalone Paper plugin by **CADERA** for a configurable Minecraft Java + Bedrock member menu.
 
+
+## ARUNIKA Simplified Menu — v1.12.0
+
+The default main menu has ten focused buttons: **Teleport Player**, **Home**, **Warp**,
+**Player Warp**, **Shop**, **Dungeon Exchange**, **Family**, **Circle / Party**,
+**Fitur Lainnya**, and **Pengaturan**. Buttons relying on external plugins execute
+their command directly instead of creating a second CdrMemberBook menu. Any missing
+plugin/command is hidden automatically by Smart Menu.
+
+**Fitur Lainnya** retains Claim Land, Auction House, Bank, Pay, Trade, Player Reports,
+and the permission-gated staff Report Center. All existing report, home, teleport,
+and player preference data remain intact.
+
+When upgrading a previous v28 installation, CdrMemberBook automatically migrates
+the less-used main-menu buttons into **Fitur Lainnya**, preserving the existing
+per-button settings, commands, conditions, and action chains. It disables the old
+main-menu copies but does not delete them. **Back up** `plugins/CdrMemberBook/config.yml`
+before replacing the JAR.
+
+### Bedrock icons
+
+Icons are validated against a curated list of official Bedrock vanilla texture paths
+(default), with missing/unsupported images falling back to a vanilla paper icon.
+Legacy invalid paths for `barrier`, `bell`, and `note_block` are mapped to safe
+alternatives. Controls:
+
+```yaml
+bedrock-icons:
+  enabled: true
+  allow-custom-paths: false # change to true only if Bedrock clients load your texture pack
+  allow-remote-urls: false  # change to true only for trusted HTTPS image URLs
+```
+
+Custom path/URL icons cannot be verified on the server against a player's exact
+resource pack. If you intentionally use custom textures, enable the corresponding
+option after testing on a Bedrock client. Run `/menu reload` after editing config.
+
+For ARUNIKA: `/shop` should expose Player Shop in EconomyShopGUI's own GUI;
+`/dg` should open Dungeon Exchange; `/family` and `/party` must exist.
+Edit `menu.main.buttons.*.command` to match actual plugin command aliases.
 
 ## Player Preferences — v1.10.0
 
@@ -238,7 +278,7 @@ mvn clean package
 Output:
 
 ```text
-target/CdrMemberBook-1.9.6.jar
+target/CdrMemberBook-1.12.0.jar
 ```
 
 ## License
