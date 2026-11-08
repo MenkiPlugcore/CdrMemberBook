@@ -111,7 +111,7 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
         memberBookService.giveToOnlinePlayers();
         memberBookService.startEnforcement();
         getLogger().info("Member Book mode: " + memberBookService.modeName());
-        getLogger().info("CdrMemberBook v1.12.0 (ARUNIKA) enabled.");
+        getLogger().info("CdrMemberBook v1.12.1 (ARUNIKA AntiDupe) enabled.");
     }
 
     @Override
@@ -383,7 +383,18 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
             }
         }
 
-        getConfig().set("config-version", 29);
+        if (configVersion < 30) {
+            // Older ARUNIKA books used WRITABLE_BOOK to trigger Bedrock actions.
+            // Upgrade them to signed, read-only books so the native Write action
+            // is unavailable. Their PDC identity survives item refresh.
+            String bookMaterial = getConfig().getString("member-book.material", "WRITABLE_BOOK");
+            if (bookMaterial == null || bookMaterial.equalsIgnoreCase("WRITABLE_BOOK")) {
+                getConfig().set("member-book.material", "WRITTEN_BOOK");
+            }
+            getConfig().set("member-book.interaction.block-native-edit", true);
+        }
+
+        getConfig().set("config-version", 30);
         saveConfig();
     }
 
