@@ -1,7 +1,36 @@
-# CdrMemberBook v1.12.0
+# CdrMemberBook v1.12.1
 
 Standalone Paper plugin by **CADERA** for a configurable Minecraft Java + Bedrock member menu.
 
+
+## Anti-dupe read-only Member Book — v1.12.1
+
+For a default installation, the member item is now a signed `WRITTEN_BOOK`, not
+an editable `WRITABLE_BOOK`. The native Write/Sign action is therefore not
+available. The book is assigned the `TATTERED` generation so it cannot be copied
+using vanilla written-book crafting recipes. Paper event listeners separately:
+
+- deny the member book's vanilla item/block use while opening the configured menu
+- cancel any legacy book editing and signing packets sent for a PDC-tagged member book
+- block all crafting recipes that try to use a member book as an ingredient
+- resynchronize the player inventory after rejecting a malicious/legacy edit
+
+On upgrade (config version 29 → 30), the default `member-book.material` is
+converted automatically from `WRITABLE_BOOK` to `WRITTEN_BOOK`. Player books
+are refreshed on join/startup when `member-book.customization.refresh-existing`
+is enabled. The original item marker and inventory-recovery protections remain.
+
+```yaml
+member-book:
+  material: WRITTEN_BOOK
+  interaction:
+    block-native-edit: true
+```
+
+**Client note:** Bedrock may still briefly show its own read-only book UI when
+the signed book is used, even though its server-side interaction is denied. It
+must never show editable Write/Sign controls on the newly migrated signed book.
+A real Bedrock client test is required before declaring this behavior verified.
 
 ## ARUNIKA Simplified Menu — v1.12.0
 
@@ -278,7 +307,7 @@ mvn clean package
 Output:
 
 ```text
-target/CdrMemberBook-1.12.0.jar
+target/CdrMemberBook-1.12.1.jar
 ```
 
 ## License
