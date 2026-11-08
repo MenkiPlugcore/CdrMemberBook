@@ -111,7 +111,7 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
         memberBookService.giveToOnlinePlayers();
         memberBookService.startEnforcement();
         getLogger().info("Member Book mode: " + memberBookService.modeName());
-        getLogger().info("CdrMemberBook v1.11.0.1 enabled.");
+        getLogger().info("CdrMemberBook v1.12.0 (ARUNIKA) enabled.");
     }
 
     @Override
@@ -362,8 +362,43 @@ public final class CdrMemberBookPlugin extends JavaPlugin implements Listener {
             getConfig().set("member-book.interaction.bedrock-open-delay-ticks", 1L);
         }
 
-        getConfig().set("config-version", 28);
+        // v1.12: move less-used default actions into "Fitur Lainnya".
+        // Copy every existing setting (including custom commands/actions) before hiding
+        // the legacy main-menu entry; never erase someone's customized buttons.
+        if (configVersion < 29) {
+            for (String key : new String[]{"land", "playershop", "bank", "transfer", "barter", "report", "report-center"}) {
+                moveMainButtonToMore(key);
+            }
+            if (getConfig().isConfigurationSection("menu.main.buttons.close")) {
+                getConfig().set("menu.main.buttons.close.enabled", false);
+            }
+            String title = getConfig().getString("menu.main.title", "");
+            if ("&d&lCdrMemberBook &fMenu".equals(title)) {
+                getConfig().set("menu.main.title", "&d&lARUNIKA &f• Member Menu");
+                getConfig().set("menu.main.content", "&7Pilih aktivitas. Menu lain ada di Fitur Lainnya.");
+            }
+            String bookName = getConfig().getString("member-book.name", "");
+            if ("&d&lCdrMemberBook".equals(bookName)) {
+                getConfig().set("member-book.name", "&d&lARUNIKA &fMember Book");
+            }
+        }
+
+        getConfig().set("config-version", 29);
         saveConfig();
+    }
+
+    private void moveMainButtonToMore(String key) {
+        org.bukkit.configuration.ConfigurationSection source =
+                getConfig().getConfigurationSection("menu.main.buttons." + key);
+        if (source == null) return;
+        String destination = "menu.submenus.more.buttons." + key;
+        // Skip sections: copying leaf values preserves nested conditions and actions.
+        for (String property : source.getKeys(true)) {
+            if (!source.isConfigurationSection(property)) {
+                getConfig().set(destination + "." + property, source.get(property));
+            }
+        }
+        getConfig().set("menu.main.buttons." + key + ".enabled", false);
     }
 
     private void migrateLegacyBranding() {
