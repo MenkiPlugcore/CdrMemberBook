@@ -17,6 +17,8 @@ import org.bukkit.event.block.BlockDispenseEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.ClickType;
+import org.bukkit.event.inventory.CraftItemEvent;
+import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
@@ -922,6 +924,30 @@ public final class MemberBookService implements Listener {
         }
 
         scheduleRepair(player);
+    }
+
+    // Block crafting recipes using the tagged book (including vanilla book
+    // cloning) even if an old WRITABLE_BOOK survives the configuration migration.
+    @EventHandler
+    public void onPrepareCraft(PrepareItemCraftEvent event) {
+        if (!isEnabled()) return;
+        for (ItemStack ingredient : event.getInventory().getMatrix()) {
+            if (isMemberBook(ingredient)) {
+                event.getInventory().setResult(null);
+                return;
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onCraft(CraftItemEvent event) {
+        if (!isEnabled()) return;
+        for (ItemStack ingredient : event.getInventory().getMatrix()) {
+            if (isMemberBook(ingredient)) {
+                event.setCancelled(true);
+                return;
+            }
+        }
     }
 
     @EventHandler
